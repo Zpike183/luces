@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0a0a0f">
+<title>Luces 208 · Voz</title>
+<style>
+  :root{
+    --bg:#0a0a0f; --panel:#14141c; --line:#262633; --txt:#ecebf2; --dim:#8c8aa0;
+    --red:#ff2a2a; --ok:#35d07f; --warn:#ffb020;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;background:var(--bg);color:var(--txt);font:16px/1.4 system-ui,-apple-system,Roboto,sans-serif;padding:16px 16px 40px;max-width:640px;margin-inline:auto}
+  h1{font-size:20px;letter-spacing:.12em;text-transform:uppercase;margin:4px 0 2px}
+  .scanner{height:6px;border-radius:3px;background:#200;overflow:hidden;margin:6px 0 18px;position:relative}
+  .scanner::after{content:"";position:absolute;top:0;bottom:0;width:22%;background:linear-gradient(90deg,transparent,var(--red),transparent);animation:kitt 1.6s ease-in-out infinite alternate}
+  @keyframes kitt{from{left:-5%}to{left:83%}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:14px}
+  .row{display:flex;align-items:center;gap:10px}
+  .grow{flex:1;min-width:0}
+  .name{font-weight:600}
+  .sub{color:var(--dim);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .dot{width:10px;height:10px;border-radius:50%;background:#444;flex:none}
+  .dot.on{background:var(--ok);box-shadow:0 0 8px var(--ok)}
+  .dot.busy{background:var(--warn)}
+  button{font:inherit;color:var(--txt);background:#20202b;border:1px solid var(--line);border-radius:12px;padding:10px 14px;min-height:44px}
+  button:active{transform:scale(.97)}
+  button.primary{background:var(--red);border-color:var(--red);color:#fff;font-weight:600}
+  button.small{padding:6px 10px;min-height:36px;font-size:14px}
+  .big-color{display:flex;gap:14px;align-items:center}
+  input[type=color]{width:84px;height:84px;border:none;border-radius:16px;background:none;padding:0}
+  input[type=range]{width:100%;accent-color:var(--red)}
+  .presets{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px}
+  .preset{aspect-ratio:1;border-radius:14px;border:2px solid transparent;position:relative}
+  .preset span{position:absolute;bottom:4px;left:0;right:0;font-size:11px;text-align:center;color:#fff;text-shadow:0 1px 3px #000}
+  .preset .x{position:absolute;top:-6px;right:-6px;width:26px;height:26px;border-radius:50%;background:#000;border:2px solid var(--red);color:#fff;font-size:14px;line-height:22px;text-align:center;display:none}
+  .editing .preset .x{display:block}
+  .editing .preset:not(.add){animation:wig .25s ease-in-out infinite alternate}
+  @keyframes wig{from{transform:rotate(-2deg)}to{transform:rotate(2deg)}}
+  .preset.add{background:#20202b;border:1px dashed var(--line);font-size:26px;color:var(--dim)}
+  label.chk{display:flex;align-items:center;gap:6px;font-size:14px;color:var(--dim)}
+  select{font:inherit;background:#20202b;color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:6px}
+  .switch{position:relative;width:52px;height:30px;flex:none}
+  .switch input{opacity:0;width:0;height:0}
+  .switch i{position:absolute;inset:0;background:#33333f;border-radius:30px;transition:.2s}
+  .switch i::before{content:"";position:absolute;width:24px;height:24px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s}
+  .switch input:checked + i{background:var(--red)}
+  .switch input:checked + i::before{transform:translateX(22px)}
+  details{margin-top:10px}
+  summary{color:var(--dim);font-size:14px}
+  .adv{display:grid;gap:8px;margin-top:8px}
+  #log{font:12px/1.4 ui-monospace,monospace;color:var(--dim);white-space:pre-wrap;max-height:180px;overflow:auto}
+  .warnbox{border-color:var(--warn);color:var(--warn);display:none}
+  .rgb{display:grid;gap:8px;margin-top:14px}
+  .rgbrow{display:flex;align-items:center;gap:10px}
+  .rgbrow b{width:14px}
+  .rgbrow input[type=range]{flex:1}
+  .rgbrow input[type=number]{width:64px;font:inherit;background:#20202b;color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:6px;text-align:center}
+  .mic{width:72px;height:72px;border-radius:50%;background:#20202b;border:2px solid var(--line);display:flex;align-items:center;justify-content:center;flex:none;padding:0}
+  .mic.on{background:var(--red);border-color:var(--red);box-shadow:0 0 18px var(--red);animation:pulse 1s ease-in-out infinite alternate}
+  @keyframes pulse{from{box-shadow:0 0 6px var(--red)}to{box-shadow:0 0 22px var(--red)}}
+  .vtxt{margin-top:6px;font-size:15px}
+  .vresp{margin-top:4px;color:var(--red);font-weight:600;letter-spacing:.03em;font-size:14px}
+  .addbtn{width:100%;border:1px dashed var(--line);background:transparent;color:var(--dim);font-size:17px;margin-bottom:14px;min-height:52px}
+  button.danger{border-color:var(--red);color:var(--red)}
+  .form{display:grid;gap:10px}
+  .form label{display:grid;gap:4px;font-size:13px;color:var(--dim)}
+  .form input[type=text]{font:inherit;color:var(--txt);background:#20202b;border:1px solid var(--line);border-radius:10px;padding:10px;width:100%}
+  .form .hint{font-size:12px;color:var(--dim)}
+  .hide{display:none!important}
+  .vwarn{margin-top:6px;font-size:13px;color:var(--warn)}
+  .actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+</style>
+</head>
+<body>
+<h1>Luces · 208</h1>
+<div class="scanner"></div>
+
+<div class="card warnbox" id="nobt">
+  Este navegador no permite Bluetooth. Abrí la página en <b>Chrome</b> del celular (no dentro de otra app).
+</div>
+
+<!-- DIRECTIVAS POR VOZ -->
+<div class="card voz">
+  <div class="row">
+    <button id="mic" class="mic" aria-label="Hablar"><svg viewBox="0 0 24 24" width="34" height="34" fill="currentColor"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/></svg></button>
+    <div class="grow">
+      <div class="name">Directivas por voz</div>
+      <div class="sub" id="vozHint">Tocá el micrófono y decí una directiva</div>
+      <div id="vozTxt" class="vtxt">Ej: "ojos en rojo", "interiores al 30", "apagá todas"</div>
+      <div id="vozResp" class="vresp"></div>
+      <div id="vozWarn" class="vwarn hide">El micrófono solo funciona si la página se abre desde una dirección <b>https://</b> (por ejemplo GitHub Pages). Abierta como archivo, Chrome no lo permite.</div>
+    </div>
+  </div>
+  <label class="chk" style="margin-top:10px"><input type="checkbox" id="vozCont"> Escucha continua (responde cuando empezás con "KITT")</label>
+</div>
+
+<!-- COLOR COMPARTIDO -->
+<div class="card">
+  <div class="big-color">
+    <input type="color" id="color" value="#ffffff">
+    <div class="grow">
+      <div class="name">Color para todas</div>
+      <div class="sub">Se aplica a las luces marcadas como "compartir"</div>
+    </div>
+  </div>
+  <div class="rgb" id="rgb">
+    <div class="rgbrow"><b style="color:#ff5050">R</b><input type="range" min="0" max="255" data-c="0"><input type="number" min="0" max="255" inputmode="numeric" data-c="0"></div>
+    <div class="rgbrow"><b style="color:#50ff80">G</b><input type="range" min="0" max="255" data-c="1"><input type="number" min="0" max="255" inputmode="numeric" data-c="1"></div>
+    <div class="rgbrow"><b style="color:#5090ff">B</b><input type="range" min="0" max="255" data-c="2"><input type="number" min="0" max="255" inputmode="numeric" data-c="2"></div>
+  </div>
+  <div class="row" style="margin-top:14px;justify-content:space-between">
+    <span class="sub">Colores guardados</span>
+    <button class="small" id="editPresets">Editar</button>
+  </div>
+  <div class="presets" id="presets" style="margin-top:8px"></div>
+  <div class="form hide" id="presetForm" style="margin-top:12px">
+    <label><span id="pfTitle">Nombre del color</span><input type="text" id="pfName" maxlength="20" placeholder="Ej: Tron, Halloween, Violeta oscuro"></label>
+    <div class="row"><button class="primary grow" id="pfSave">Guardar</button><button class="grow" id="pfCancel">Cancelar</button></div>
+  </div>
+</div>
+
+<!-- LUCES -->
+<div id="lights"></div>
+<button class="addbtn" id="addLight">+ Agregar controlador</button>
+
+<!-- FORMULARIO: AGREGAR CONTROLADOR -->
+<div class="card hide" id="addForm">
+  <div class="name" style="margin-bottom:10px">Agregar controlador</div>
+  <div class="form">
+    <label>Nombre de la luz<input type="text" id="afName" maxlength="30" placeholder="Ej: Chasis"></label>
+    <label>Nombre Bluetooth (el "Local name" de LightBlue)
+      <div class="row"><input type="text" id="afBt" class="grow" placeholder="Ej: Triones:1234"><button class="small" id="afScan">Buscar</button></div>
+      <span class="hint">Con "Buscar" lo elegís de la lista y se completa solo. Cerrá antes la app original.</span>
+    </label>
+    <label>Familia / protocolo
+      <select id="afProto">
+        <option value="">Automático (según el nombre)</option>
+        <option value="triones">Triones / HappyLighting</option>
+        <option value="leddmx7b">LEDDMX (7B…BF)</option>
+        <option value="leddmxAuto">LEDDMX (auto: prueba 7B y 7E)</option>
+        <option value="elk">ELK-BLEDOM / MELK</option>
+        <option value="custom">Otra (cargar datos a mano)</option>
+      </select>
+    </label>
+    <div id="afCustom" class="form hide">
+      <label>Servicio (ej: FFE0)<input type="text" id="afSvc" placeholder="FFE0"></label>
+      <label>Característica de escritura, la que dice "Write" (ej: FFE1)<input type="text" id="afChr" placeholder="FFE1"></label>
+      <label>Comando prender (en hex)<input type="text" id="afOn" placeholder="Ej: CC 23 33"></label>
+      <label>Comando apagar (en hex)<input type="text" id="afOff" placeholder="Ej: CC 24 33"></label>
+      <label>Comando color (en hex, con RR GG BB donde va el color)<input type="text" id="afCol" placeholder="Ej: 56 RR GG BB 00 F0 AA"></label>
+      <span class="hint">Los comandos no aparecen en LightBlue: hay que capturarlos de la app original o encontrarlos documentados.</span>
+    </div>
+    <label>Tipo de tira
+      <select id="afType"><option value="rgb">RGB común (4 cables)</option><option value="pixel">Micropíxel (3 cables)</option></select>
+    </label>
+    <label>Orden de color
+      <select id="afOrder"><option>rgb</option><option>grb</option><option>brg</option><option>rbg</option><option>gbr</option><option>bgr</option></select>
+    </label>
+    <label class="chk"><input type="checkbox" id="afDim"> Brillo propio (barra de brillo)</label>
+    <div id="afErr" class="vresp"></div>
+    <div class="row"><button class="primary grow" id="afSave">Guardar</button><button class="grow" id="afCancel">Cancelar</button></div>
+  </div>
+</div>
+
+<button id="connectAll" style="width:100%;margin-bottom:10px">Conectar todas</button>
+<div class="actions">
+  <button class="primary" id="allOn">Prender todas</button>
+  <button id="allOff">Apagar todas</button>
+</div>
+<div style="height:10px"></div>
+<button id="disconnectAll" style="width:100%">Desconectar todas (para usar las apps originales)</button>
+
+<div class="card" style="margin-top:14px">
+  <details>
+    <summary>Registro (para diagnóstico)</summary>
+    <div id="log"></div>
+  </details>
+</div>
+
+<script>
+(() => {
+'use strict';
+
+/* ---------- Utilidades ---------- */
+const $ = s => document.querySelector(s);
+const logEl = $('#log');
+function log(msg){
+  const t = new Date().toLocaleTimeString();
+  logEl.textContent = `[${t}] ${msg}\n` + logEl.textContent.slice(0, 4000);
+}
+const uuid16 = n => `0000${n}-0000-1000-8000-00805f9b34fb`;
+// acepta "FFE0", "0xffe0" o un UUID completo
+const uuidAny = s => { s = String(s || '').trim().toLowerCase().replace(/^0x/, ''); return /^[0-9a-f]{4}$/.test(s) ? uuid16(s) : s; };
+const hex = arr => Array.from(arr, b => b.toString(16).padStart(2,'0')).join(' ');
+const store = {
+  get(k, d){ try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } },
+  set(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+};
+function hexToRgb(h){ const n = parseInt(h.slice(1),16); return [(n>>16)&255,(n>>8)&255,n&255]; }
+function reorder([r,g,b], order){ const m = {r,g,b}; return order.split('').map(c => m[c]); }
+const escapeHtml = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const norm = s => String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[.,;:!¡?¿"]/g, ' ').replace(/\s+/g, ' ').trim();
+
+/* ---------- Protocolos ---------- */
+const PROTOCOLS = {
+  triones: {
+    label: 'Triones / HappyLighting',
+    targets: [['ffd5','ffd9'], ['ffe5','ffe9']],
+    on:  () => [[0xCC,0x23,0x33]],
+    off: () => [[0xCC,0x24,0x33]],
+    color: ([r,g,b]) => [[0x56,r,g,b,0x00,0xF0,0xAA]],
+  },
+  elk: {
+    label: 'ELK-BLEDOM / MELK',
+    targets: [['fff0','fff3'], ['ffe0','ffe1']],
+    on:  () => [[0x7E,0x00,0x04,0xF0,0x00,0x01,0xFF,0x00,0xEF]],
+    off: () => [[0x7E,0x00,0x04,0x00,0x00,0x00,0xFF,0x00,0xEF]],
+    color: ([r,g,b]) => [[0x7E,0x00,0x05,0x03,r,g,b,0x00,0xEF]],
+  },
+  leddmx7b: {
+    label: 'LEDDMX (7B…BF)',
+    targets: [['ffe0','ffe1']],
+    on:  () => [[0x7B,0xFF,0x04,0x01,0xFF,0xFF,0xFF,0xFF,0xBF]],
+    off: () => [[0x7B,0x04,0x04,0x00,0xFF,0xFF,0xFF,0xFF,0xBF]],
+    color: ([r,g,b]) => [[0x7B,0xFF,0x07,r,g,b,0xFF,0xFF,0xBF]],
+  },
+  leddmxAuto: {
+    label: 'LEDDMX (auto: prueba 7B y 7E)',
+    targets: [['ffe0','ffe1']],
+    on:  () => [...PROTOCOLS.leddmx7b.on(), ...PROTOCOLS.elk.on()],
+    off: () => [...PROTOCOLS.leddmx7b.off(), ...PROTOCOLS.elk.off()],
+    color: c => [...PROTOCOLS.leddmx7b.color(c), ...PROTOCOLS.elk.color(c)],
+  },
+};
+const KNOWN = [['Triones','triones'], ['LEDDMX','leddmx7b'], ['MELK','elk'], ['ELK','elk'], ['LEDBLE','elk']];
+const detectProto = name => (KNOWN.find(([p]) => (name || '').toUpperCase().startsWith(p.toUpperCase())) || [])[1] || null;
+
+// "CC 23 33" → [0xCC,0x23,0x33]; "56 RR GG BB 00 F0 AA" con el color
+function parseHexCmd(str, rgb){
+  if (!str) return [];
+  const toks = str.trim().split(/[\s,:]+/).filter(Boolean);
+  const map = { RR: rgb && rgb[0], GG: rgb && rgb[1], BB: rgb && rgb[2] };
+  const out = toks.map(t => { const u = t.toUpperCase().replace(/^0X/, ''); return u in map ? map[u] : parseInt(u, 16); });
+  return out.some(v => v === undefined || isNaN(v) || v < 0 || v > 255) ? [] : [out];
+}
+// protocolo de una luz (los cargados a mano se arman con sus datos)
+function P(L){
+  if (L.proto === 'custom'){
+    const c = L.custom || {};
+    return { label:'Otra (manual)', targets: [[c.svc, c.chr]], custom:true,
+      on: () => parseHexCmd(c.on), off: () => parseHexCmd(c.off), color: rgb => parseHexCmd(c.color, rgb) };
+  }
+  return PROTOCOLS[L.proto] || PROTOCOLS.elk;
+}
+const BASE_SERVICES = [...new Set(Object.values(PROTOCOLS).flatMap(p => p.targets.map(t => uuid16(t[0]))))];
+const allServices = () => [...new Set([...BASE_SERVICES, ...LIGHTS.filter(L => L.proto === 'custom' && L.custom && L.custom.svc).map(L => uuidAny(L.custom.svc))])];
+
+/* ---------- Luces: las 3 fijas + las agregadas a mano ---------- */
+const DEFAULTS = [
+  { id:'ojos', name:'Ojos de demonio',  prefix:'Triones', proto:'triones',  order:'rgb', fixed:true, words:['ojo','ojos','demonio','demonios','aro','aros'], say:'OJOS' },
+  { id:'drl',  name:'Tiras DRL',        prefix:'LEDDMX',  proto:'leddmx7b', order:'rgb', fixed:true, repeat:true, words:['drl','d r l','de rl','diurnas','diurna','opticas','optica'], say:'DRL' },
+  { id:'int',  name:'Tiras interiores', prefix:'MELK',    proto:'elk',      order:'rgb', fixed:true, dim:true, words:['interior','interiores','adentro','habitaculo','cabina','puertas','torpedo'], say:'INTERIOR' },
+];
+const savedFixed = store.get('lights-cfg', {});
+const savedExtra = store.get('lights-extra', []);
+const live = L => Object.assign(L, { power:false, device:null, char:null, queue:Promise.resolve(), rpt:null });
+let LIGHTS = [
+  ...DEFAULTS.map(d => Object.assign({}, d, savedFixed[d.id] || {})),
+  ...savedExtra,
+].map(L => { L.share = L.share ?? true; L.level = L.level ?? 100; L.order = L.order || 'rgb'; return live(L); });
+
+function saveCfg(){
+  const fixed = {}, extra = [];
+  for (const L of LIGHTS){
+    const base = { proto:L.proto, order:L.order, share:L.share, level:L.level, btName:L.btName || '', repeat:!!L.repeat };
+    if (L.fixed) fixed[L.id] = base;
+    else extra.push({ ...base, id:L.id, name:L.name, dim:!!L.dim, type:L.type, custom:L.custom });
+  }
+  store.set('lights-cfg', fixed);
+  store.set('lights-extra', extra);
+}
+
+/* ---------- Bluetooth ---------- */
+const hasBT = !!(navigator.bluetooth);
+if (!hasBT) $('#nobt').style.display = 'block';
+
+function enqueue(L, fn){
+  L.queue = L.queue.then(fn).catch(e => log(`${L.name}: ${e.message}`));
+  return L.queue;
+}
+async function writeCmds(L, cmds){
+  if (!L.char) return;
+  for (const c of cmds){
+    if (!c.length) continue;
+    const data = new Uint8Array(c);
+    if (L.char.properties.writeWithoutResponse && L.char.writeValueWithoutResponse)
+      await L.char.writeValueWithoutResponse(data);
+    else
+      await L.char.writeValue(data);
+    log(`${L.name} ← ${hex(data)}`);
+    await new Promise(r => setTimeout(r, 25));
+  }
+}
+async function findChar(L, server){
+  for (const [s, c] of P(L).targets){
+    try {
+      const svc = await server.getPrimaryService(uuidAny(s));
+      const ch = await svc.getCharacteristic(uuidAny(c));
+      log(`${L.name}: usando servicio ${s} / ${c}`);
+      return ch;
+    } catch {}
+  }
+  throw new Error('no encontré dónde escribir (servicio no compatible)');
+}
+async function attach(L, device){
+  L.device = device;
+  if (device.name && device.name !== L.btName){ L.btName = device.name; saveCfg(); }
+  setStatus(L, 'busy', 'Conectando…');
+  if (!device.__kittListen){
+    device.__kittListen = true;
+    device.addEventListener('gattserverdisconnected', () => {
+      L.char = null; setStatus(L, '', 'Desconectada'); log(`${L.name}: desconectada`);
+    });
+  }
+  const server = await device.gatt.connect();
+  L.char = await findChar(L, server);
+  setStatus(L, 'on', device.name || 'Conectada');
+  log(`${L.name}: conectada (${device.name})`);
+}
+function filtersFor(L){
+  if (L.btName) return [{ name: L.btName }];
+  if (L.prefix) return [{ namePrefix: L.prefix }];
+  return KNOWN.map(([p]) => ({ namePrefix: p }));
+}
+async function connect(L){
+  if (!hasBT) return false;
+  try {
+    const device = await navigator.bluetooth.requestDevice({ filters: filtersFor(L), optionalServices: allServices() });
+    await attach(L, device);
+    return true;
+  } catch (e){
+    setStatus(L, '', 'Sin conectar');
+    if (e.name === 'NotFoundError') log(`${L.name}: búsqueda cancelada o no apareció. ¿Está cerrada la app original?`);
+    else if (e.name === 'SecurityError') log(`${L.name}: Chrome pide que toques "Conectar" en esta luz.`);
+    else log(`${L.name}: ${e.message}`);
+    return false;
+  }
+}
+// Reconexión sin elegir de nuevo (si Chrome recuerda los permisos)
+async function tryAutoReconnect(){
+  if (!hasBT || !navigator.bluetooth.getDevices) return;
+  try {
+    const devs = await navigator.bluetooth.getDevices();
+    for (const L of LIGHTS){
+      const d = devs.find(d => L.btName ? d.name === L.btName : (L.prefix && (d.name || '').startsWith(L.prefix)));
+      if (d) attach(L, d).catch(e => { setStatus(L,'','Tocá Conectar'); log(`${L.name}: ${e.message}`); });
+    }
+  } catch {}
+}
+// Conectar todas: reconecta sin listas las que ya se eligieron; para las demás abre la lista una tras otra
+async function connectAll(){
+  if (!hasBT) return;
+  if (navigator.bluetooth.getDevices){
+    try {
+      const devs = await navigator.bluetooth.getDevices();
+      for (const L of LIGHTS) if (!L.char && !L.device){
+        const d = devs.find(d => L.btName ? d.name === L.btName : (L.prefix && (d.name || '').startsWith(L.prefix)));
+        if (d) L.device = d;
+      }
+    } catch {}
+  }
+  for (const L of LIGHTS){
+    if (L.char) continue;
+    if (L.device){ try { await attach(L, L.device); continue; } catch (e){ log(`${L.name}: ${e.message}`); } }
+    await connect(L);
+  }
+}
+function disconnect(L){
+  clearTimeout(L.rpt);
+  if (L.device && L.device.gatt.connected) L.device.gatt.disconnect();
+  L.char = null; setStatus(L, '', 'Desconectada');
+}
+
+/* ---------- Acciones ---------- */
+function currentColor(){ return hexToRgb($('#color').value); }
+// curva de brillo: así cada tramo de la barra se nota parejo a la vista
+const bright = p => p >= 100 ? 1 : Math.max(0.01, Math.pow(p / 100, 2));
+function finalColor(L, rgb){
+  const k = L.dim ? bright(L.level) : 1;
+  return reorder(rgb.map(v => Math.round(v * k)), L.order);
+}
+function colorFor(L){
+  const own = document.getElementById('own-' + L.id);
+  return L.share || !own ? currentColor() : hexToRgb(own.value);
+}
+function sendColor(L, rgb){
+  if (!L.char) return Promise.resolve();
+  const p = P(L), out = finalColor(L, rgb);
+  const q = enqueue(L, () => writeCmds(L, p.color(out)));
+  if (L.repeat){ // se manda de nuevo por si el controlador no lo tomó
+    clearTimeout(L.rpt);
+    L.rpt = setTimeout(() => enqueue(L, () => writeCmds(L, p.color(out))), 200);
+  }
+  return q;
+}
+function setPower(L, on){
+  L.power = on; renderPower(L);
+  if (!L.char) return Promise.resolve();
+  const p = P(L);
+  return enqueue(L, async () => {
+    await writeCmds(L, on ? p.on() : p.off());
+    if (on) await writeCmds(L, p.color(finalColor(L, colorFor(L))));
+  });
+}
+let pending = null;
+function applyShared(){
+  if (pending) return;
+  pending = setTimeout(() => {
+    pending = null;
+    const rgb = currentColor();
+    LIGHTS.filter(L => L.share && L.char).forEach(L => sendColor(L, rgb));
+  }, 90);
+}
+
+/* ---------- Interfaz de cada luz ---------- */
+function setStatus(L, cls, text){
+  const el = document.getElementById('st-' + L.id);
+  if (!el) return;
+  el.querySelector('.dot').className = 'dot ' + cls;
+  el.querySelector('.sub').textContent = text;
+  document.getElementById('cn-' + L.id).textContent = cls === 'on' ? 'Desconectar' : 'Conectar';
+}
+function renderPower(L){ const el = document.getElementById('pw-' + L.id); if (el) el.checked = L.power; }
+
+const host = $('#lights');
+function renderCard(L){
+  const card = document.createElement('div');
+  card.className = 'card'; card.id = 'card-' + L.id;
+  const protoOpts = Object.entries(PROTOCOLS).map(([k,p]) => `<option value="${k}" ${k===L.proto?'selected':''}>${p.label}</option>`).join('')
+    + (L.proto === 'custom' ? `<option value="custom" selected>Otra (manual)</option>` : '');
+  card.innerHTML = `
+    <div class="row">
+      <div class="grow" id="st-${L.id}">
+        <div class="name">${escapeHtml(L.name)}</div>
+        <div class="row" style="gap:6px"><span class="dot"></span><span class="sub">${L.btName ? escapeHtml(L.btName) + ' · sin conectar' : 'Sin conectar'}</span></div>
+      </div>
+      <button class="small" id="cn-${L.id}">Conectar</button>
+      <label class="switch"><input type="checkbox" id="pw-${L.id}"><i></i></label>
+    </div>
+    <div class="row" style="margin-top:10px;justify-content:space-between">
+      <label class="chk"><input type="checkbox" id="sh-${L.id}" ${L.share?'checked':''}> Compartir color</label>
+      <input type="color" id="own-${L.id}" value="#ffffff" style="width:44px;height:36px;border-radius:10px;${L.share?'opacity:.3':''}">
+    </div>
+    ${L.dim ? `
+    <div class="row" style="margin-top:10px">
+      <span class="sub">Brillo</span>
+      <input type="range" id="lv-${L.id}" min="5" max="100" value="${L.level}" class="grow">
+      <span id="lvv-${L.id}" class="sub" style="width:44px;text-align:right">${L.level}%</span>
+    </div>` : ''}
+    <details>
+      <summary>Ajustes avanzados</summary>
+      <div class="adv">
+        <label class="chk">Protocolo <select id="pr-${L.id}">${protoOpts}</select></label>
+        <label class="chk">Orden de color (si sale cambiado)
+          <select id="or-${L.id}">${['rgb','grb','brg','rbg','gbr','bgr'].map(o => `<option ${o===L.order?'selected':''}>${o}</option>`).join('')}</select>
+        </label>
+        <label class="chk"><input type="checkbox" id="rp-${L.id}" ${L.repeat?'checked':''}> Repetir el color (si a veces no lo toma a la primera)</label>
+        <div class="row" style="gap:6px;flex-wrap:wrap">
+          <button class="small" data-t="ff0000">Probar rojo</button>
+          <button class="small" data-t="00ff00">Verde</button>
+          <button class="small" data-t="0000ff">Azul</button>
+        </div>
+        ${L.fixed ? '' : `<div><button class="small danger" id="rm-${L.id}">Quitar controlador</button></div>`}
+      </div>
+    </details>`;
+  host.appendChild(card);
+
+  const q = s => card.querySelector(s);
+  q('#cn-' + L.id).onclick = () => (L.char ? disconnect(L) : connect(L));
+  q('#pw-' + L.id).onchange = e => setPower(L, e.target.checked);
+  q('#sh-' + L.id).onchange = e => {
+    L.share = e.target.checked; saveCfg();
+    q('#own-' + L.id).style.opacity = L.share ? .3 : 1;
+    sendColor(L, colorFor(L));
+  };
+  q('#own-' + L.id).oninput = e => { if (!L.share) sendColor(L, hexToRgb(e.target.value)); };
+  if (L.dim){
+    let tm = null;
+    q('#lv-' + L.id).oninput = e => {
+      L.level = +e.target.value;
+      q('#lvv-' + L.id).textContent = L.level + '%';
+      saveCfg();
+      if (tm) return;
+      tm = setTimeout(() => { tm = null; sendColor(L, colorFor(L)); }, 90);
+    };
+  }
+  q('#pr-' + L.id).onchange = async e => {
+    L.proto = e.target.value; saveCfg();
+    if (L.device && L.device.gatt.connected){
+      try { L.char = await findChar(L, L.device.gatt); } catch(err){ log(`${L.name}: ${err.message}`); }
+    }
+  };
+  q('#or-' + L.id).onchange = e => { L.order = e.target.value; saveCfg(); sendColor(L, colorFor(L)); };
+  q('#rp-' + L.id).onchange = e => { L.repeat = e.target.checked; saveCfg(); };
+  card.querySelectorAll('[data-t]').forEach(b => b.onclick = () => sendColor(L, hexToRgb('#' + b.dataset.t)));
+  if (!L.fixed){
+    let armed = false;
+    q('#rm-' + L.id).onclick = e => {
+      if (!armed){ armed = true; e.target.textContent = '¿Seguro? Tocá de nuevo'; setTimeout(() => { armed = false; e.target.textContent = 'Quitar controlador'; }, 3000); return; }
+      disconnect(L); LIGHTS = LIGHTS.filter(x => x !== L); saveCfg(); card.remove();
+    };
+  }
+}
+LIGHTS.forEach(renderCard);
+
+/* ---------- Agregar controlador a mano ---------- */
+let pickedDevice = null;
+const af = id => $('#' + id);
+function openAddForm(){
+  ['afName','afBt','afSvc','afChr','afOn','afOff','afCol'].forEach(id => af(id).value = '');
+  af('afProto').value = ''; af('afType').value = 'rgb'; af('afOrder').value = 'rgb'; af('afDim').checked = false;
+  af('afErr').textContent = ''; af('afCustom').classList.add('hide'); pickedDevice = null;
+  af('addForm').classList.remove('hide'); af('addLight').classList.add('hide');
+  af('afName').focus();
+}
+function closeAddForm(){ af('addForm').classList.add('hide'); af('addLight').classList.remove('hide'); }
+af('addLight').onclick = openAddForm;
+af('afCancel').onclick = closeAddForm;
+af('afProto').onchange = e => af('afCustom').classList.toggle('hide', e.target.value !== 'custom');
+af('afScan').onclick = async () => {
+  if (!hasBT) return;
+  try {
+    const extra = af('afSvc').value ? [uuidAny(af('afSvc').value)] : [];
+    const d = await navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: [...allServices(), ...extra] });
+    pickedDevice = d; af('afBt').value = d.name || '';
+    const det = detectProto(d.name);
+    af('afErr').textContent = det ? `Detectado: ${PROTOCOLS[det].label}` : 'Marca no reconocida: elegí "Otra" y cargá los datos.';
+    if (!det){ af('afProto').value = 'custom'; af('afCustom').classList.remove('hide'); }
+  } catch (e){ if (e.name !== 'NotFoundError') af('afErr').textContent = e.message; }
+};
+af('afSave').onclick = async () => {
+  const name = af('afName').value.trim(), bt = af('afBt').value.trim();
+  if (!name) return af('afErr').textContent = 'Falta el nombre de la luz.';
+  if (!bt) return af('afErr').textContent = 'Falta el nombre Bluetooth (tocá "Buscar" o copialo de LightBlue).';
+  let proto = af('afProto').value || detectProto(bt);
+  if (!proto) return af('afErr').textContent = 'No reconozco esa marca: elegí la familia o "Otra".';
+  let custom = null;
+  if (proto === 'custom'){
+    custom = { svc: af('afSvc').value.trim(), chr: af('afChr').value.trim(), on: af('afOn').value.trim(), off: af('afOff').value.trim(), color: af('afCol').value.trim() };
+    if (!custom.svc || !custom.chr) return af('afErr').textContent = 'Faltan el servicio y la característica.';
+    if (!parseHexCmd(custom.color, [1,2,3]).length || !/RR/i.test(custom.color)) return af('afErr').textContent = 'El comando de color tiene que estar en hex e incluir RR GG BB.';
+    if ((custom.on && !parseHexCmd(custom.on).length) || (custom.off && !parseHexCmd(custom.off).length)) return af('afErr').textContent = 'Revisá los comandos de prender y apagar (en hex, ej: CC 23 33).';
+  }
+  const L = live({ id: 'x' + Date.now().toString(36), name, btName: bt, proto, custom, type: af('afType').value,
+                   order: af('afOrder').value, dim: af('afDim').checked, share: true, level: 100, repeat: false });
+  LIGHTS.push(L); saveCfg(); renderCard(L); closeAddForm();
+  log(`${name}: controlador agregado (${proto === 'custom' ? 'manual' : P(L).label})`);
+  if (pickedDevice && pickedDevice.name === bt){ try { await attach(L, pickedDevice); } catch (e){ log(`${name}: ${e.message}`); } }
+};
+
+/* ---------- Colores guardados (con nombre) ---------- */
+const DEFAULT_PRESETS = [
+  ['Rojo KITT','#ff0000'], ['Blanco','#ffffff'], ['Azul','#0040ff'], ['Cian','#00e5ff'],
+  ['Violeta','#9b30ff'], ['Verde','#00ff40'], ['Ámbar','#ff8c00'],
+];
+let presets = store.get('presets', DEFAULT_PRESETS);
+let editing = false, pfMode = null, pfIndex = -1;
+function renderPresets(){
+  const box = $('#presets'); box.innerHTML = '';
+  presets.forEach(([n, c], i) => {
+    const b = document.createElement('button');
+    b.className = 'preset'; b.style.background = c;
+    b.innerHTML = `<span>${escapeHtml(n)}</span><div class="x">✕</div>`;
+    b.querySelector('.x').onclick = e => { // borrar
+      e.stopPropagation(); presets.splice(i,1); store.set('presets', presets); renderPresets(); closePresetForm();
+    };
+    b.onclick = () => {
+      if (editing) return openPresetForm('rename', i); // en edición, tocar el color le cambia el nombre
+      $('#color').value = c; syncRgbFromColor(); applyShared();
+    };
+    box.appendChild(b);
+  });
+  const add = document.createElement('button');
+  add.className = 'preset add'; add.textContent = '+'; add.title = 'Guardar color actual';
+  add.onclick = () => openPresetForm('add');
+  box.appendChild(add);
+}
+function openPresetForm(mode, i = -1){
+  pfMode = mode; pfIndex = i;
+  $('#pfTitle').textContent = mode === 'add' ? 'Nombre para el color actual' : 'Nuevo nombre para este color';
+  $('#pfName').value = mode === 'add' ? '' : presets[i][0];
+  $('#presetForm').classList.remove('hide'); $('#pfName').focus();
+}
+function closePresetForm(){ $('#presetForm').classList.add('hide'); pfMode = null; }
+$('#pfCancel').onclick = closePresetForm;
+$('#pfSave').onclick = () => {
+  const n = $('#pfName').value.trim() || 'Mío';
+  if (pfMode === 'add') presets.push([n, $('#color').value]);
+  else if (pfMode === 'rename' && presets[pfIndex]) presets[pfIndex][0] = n;
+  store.set('presets', presets); renderPresets(); closePresetForm();
+};
+$('#pfName').addEventListener('keydown', e => { if (e.key === 'Enter') $('#pfSave').click(); });
+$('#editPresets').onclick = () => {
+  editing = !editing;
+  $('#presets').classList.toggle('editing', editing);
+  $('#editPresets').textContent = editing ? 'Listo' : 'Editar';
+  $('#editPresets').classList.toggle('primary', editing);
+  if (!editing) closePresetForm();
+};
+renderPresets();
+
+/* ---------- Controles generales ---------- */
+const rgbInputs = document.querySelectorAll('#rgb input');
+function syncRgbFromColor(){
+  const c = hexToRgb($('#color').value);
+  rgbInputs.forEach(i => i.value = c[i.dataset.c]);
+}
+rgbInputs.forEach(inp => inp.addEventListener('input', () => {
+  let v = parseInt(inp.value, 10);
+  if (isNaN(v)) return;
+  v = Math.max(0, Math.min(255, v));
+  const c = hexToRgb($('#color').value);
+  c[inp.dataset.c] = v;
+  $('#color').value = '#' + c.map(x => x.toString(16).padStart(2,'0')).join('');
+  rgbInputs.forEach(i => { if (i !== inp && i.dataset.c === inp.dataset.c) i.value = v; });
+  applyShared();
+}));
+rgbInputs.forEach(inp => inp.addEventListener('blur', syncRgbFromColor));
+syncRgbFromColor();
+
+$('#color').addEventListener('input', () => { syncRgbFromColor(); applyShared(); });
+$('#connectAll').onclick = connectAll;
+$('#allOn').onclick  = () => LIGHTS.filter(L => L.char).forEach(L => setPower(L, true));
+$('#allOff').onclick = () => LIGHTS.filter(L => L.char).forEach(L => setPower(L, false));
+$('#disconnectAll').onclick = () => LIGHTS.forEach(disconnect);
+
+/* ---------- Directivas por voz ---------- */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+const STOP = new Set(['tiras','tira','luces','luz','las','los','del','de','la','el','controlador']);
+const COLOR_WORDS = {
+  'rojo':'#ff0000', 'roja':'#ff0000', 'blanco':'#ffffff', 'blanca':'#ffffff', 'azul':'#0040ff',
+  'celeste':'#00b4ff', 'cian':'#00e5ff', 'violeta':'#9b30ff', 'morado':'#9b30ff', 'purpura':'#9b30ff',
+  'lila':'#c080ff', 'verde':'#00ff40', 'amarillo':'#ffd000', 'amarilla':'#ffd000', 'naranja':'#ff6a00',
+  'ambar':'#ff8c00', 'rosa':'#ff2a9a', 'rosado':'#ff2a9a', 'fucsia':'#ff00c8', 'magenta':'#ff00ff',
+};
+const wordsOf = L => L.words || norm(L.name).split(' ').filter(w => w.length >= 3 && !STOP.has(w));
+const sayName = L => L.say || norm(L.name).toUpperCase();
+const hasWord = (t, w) => new RegExp('(^|\\s)' + w + '(\\s|$)').test(t);
+
+function findTargets(t){
+  if (/\b(todas|todo|todos)\b/.test(t)) return LIGHTS.map(L => L.id);
+  return LIGHTS.filter(L => hasWord(t, norm(L.name)) || wordsOf(L).some(w => hasWord(t, w))).map(L => L.id);
+}
+function findColor(t){
+  // primero los colores guardados por su nombre (el más largo gana: "rojo kitt" antes que "rojo")
+  const named = presets.map(([n, c]) => [norm(n), c]).filter(([n]) => n && t.includes(n)).sort((a, b) => b[0].length - a[0].length);
+  if (named.length) return named[0][1];
+  for (const w of t.split(' ')) if (COLOR_WORDS[w]) return COLOR_WORDS[w];
+  return null;
+}
+const byId = id => LIGHTS.find(L => L.id === id);
+async function ensureConnected(L){
+  if (L.char) return true;
+  if (L.device){ try { await attach(L, L.device); return true; } catch {} }
+  return false;
+}
+
+async function runSegment(t, ctx){
+  let targets = findTargets(t);
+  if (!targets.length) targets = ctx.lastTargets.length ? ctx.lastTargets : LIGHTS.map(L => L.id);
+  ctx.lastTargets = targets;
+  const all = targets.length === LIGHTS.length;
+
+  const isOff   = /\b(apaga|apagar|apague|apagame)\b/.test(t);
+  const isOn    = /\b(enciende|encende|encender|prende|prender|prendeme|encendeme)\b/.test(t);
+  const isDisc  = /\bdesconecta(r)?\b/.test(t);
+  const isConn  = !isDisc && /\bconecta(r)?\b/.test(t);
+  const color   = findColor(t);
+  const pct     = (t.match(/(\d{1,3})\s*(%|por ?ciento)?/) || [])[1];
+  const isBright= pct !== undefined && /(brillo|al \d|por ?ciento|%)/.test(t);
+
+  const said = [];
+  for (const id of targets){
+    const L = byId(id); if (!L) continue;
+    const NAME = sayName(L);
+    if (isDisc){ disconnect(L); said.push(`${NAME} DESCONECTADO`); continue; }
+
+    const wasConnected = !!L.char;
+    if (isConn || isOn || isOff || color || isBright){
+      const ok = await ensureConnected(L);
+      if (!ok){ said.push(`NO PUEDO CONECTARME AL CONTROLADOR ${NAME}`); continue; }
+      if (isConn) said.push(`${NAME} CONECTADO`);
+      else if (!wasConnected && isOn) said.push('CONECTO EL CONTROLADOR Y ENCIENDO LA LUZ');
+    }
+    if (isOff){ await setPower(L, false); if (!all) said.push(`${NAME} APAGADO`); continue; }
+    if (isOn && wasConnected && !all) said.push(`${NAME} ENCENDIDO`);
+    if (isOn) await setPower(L, true);
+
+    if (isBright){
+      if (L.dim){
+        L.level = Math.max(5, Math.min(100, +pct)); saveCfg();
+        const s = document.getElementById('lv-' + L.id); if (s){ s.value = L.level; document.getElementById('lvv-' + L.id).textContent = L.level + '%'; }
+        sendColor(L, colorFor(L)); said.push(`${NAME} AL ${L.level} POR CIENTO`);
+      } else if (!all) said.push(`${NAME} VA SIEMPRE AL CIEN POR CIENTO`);
+    }
+    if (color && !all){
+      if (!L.power){ L.power = true; renderPower(L); await enqueue(L, () => writeCmds(L, P(L).on())); }
+      sendColor(L, hexToRgb(color)); said.push(`${NAME} LISTO`);
+    }
+  }
+  if (color && all){
+    $('#color').value = color; syncRgbFromColor();
+    for (const id of targets){ const L = byId(id); if (L && L.char && !L.power){ L.power = true; renderPower(L); enqueue(L, () => writeCmds(L, P(L).on())); } }
+    applyShared(); said.push('COLOR APLICADO A TODAS');
+  }
+  if (all && isOn)  said.push('LUCES ENCENDIDAS');
+  if (all && isOff) said.push('LUCES APAGADAS');
+  return said;
+}
+const WAKE = /^(ok |hola )?(kitt|kit|kid|quit|kitty|keat)\b\s*/;
+async function runCommand(raw){
+  const t = norm(raw).replace(WAKE, '');
+  if (!t) return speak('TE ESCUCHO');
+  const ctx = { lastTargets: [] };
+  const parts = t.split(/\s+y\s+|,/).map(s => s.trim()).filter(Boolean);
+  let said = [];
+  for (const p of parts) said = said.concat(await runSegment(p, ctx));
+  if (!said.length) said = ['NO ENTENDI LA DIRECTIVA'];
+  speak([...new Set(said)].join('. '));
+}
+function speak(text){
+  $('#vozResp').textContent = text;
+  log('Respuesta: ' + text);
+  try {
+    const u = new SpeechSynthesisUtterance(text.toLowerCase());
+    u.lang = 'es-AR';
+    const v = speechSynthesis.getVoices().find(v => v.lang && v.lang.startsWith('es'));
+    if (v) u.voice = v;
+    u.rate = 1.05;
+    speechSynthesis.cancel(); speechSynthesis.speak(u);
+  } catch {}
+}
+let rec = null, listening = false, continuous = false;
+function setContinuous(on){
+  continuous = on; $('#vozCont').checked = on;
+  $('#vozHint').textContent = on ? 'Escucha continua: empezá con "KITT…"' : 'Tocá el micrófono y decí una directiva';
+}
+function startListening(){
+  if (!SR){ speak('ESTE NAVEGADOR NO RECONOCE VOZ'); return; }
+  if (listening) return;
+  rec = new SR();
+  rec.lang = 'es-AR'; rec.interimResults = true; rec.maxAlternatives = 1;
+  rec.onstart = () => { listening = true; $('#mic').classList.add('on'); $('#vozTxt').textContent = 'Escuchando…'; };
+  rec.onresult = e => {
+    const r = e.results[e.results.length - 1];
+    const txt = r[0].transcript;
+    $('#vozTxt').textContent = '“' + txt + '”';
+    if (r.isFinal){
+      log('Escuché: ' + txt);
+      if (continuous && !WAKE.test(norm(txt))) return;
+      runCommand(txt);
+    }
+  };
+  rec.onerror = e => {
+    if (e.error === 'not-allowed' || e.error === 'service-not-allowed'){
+      setContinuous(false); $('#vozWarn').classList.remove('hide');
+      speak('NO TENGO PERMISO PARA USAR EL MICRÓFONO');
+    }
+    else if (e.error === 'network'){ setContinuous(false); speak('EL RECONOCIMIENTO DE VOZ NECESITA INTERNET'); }
+    else if (e.error !== 'no-speech' && e.error !== 'aborted') log('Voz: ' + e.error);
+  };
+  rec.onend = () => {
+    listening = false; $('#mic').classList.remove('on');
+    if (continuous) setTimeout(startListening, 300);
+    else if ($('#vozTxt').textContent === 'Escuchando…') $('#vozTxt').textContent = 'Tocá el micrófono y decí una directiva';
+  };
+  try { rec.start(); } catch {}
+}
+$('#mic').onclick = () => { if (listening && !continuous){ rec.stop(); return; } startListening(); };
+$('#vozCont').onchange = e => { setContinuous(e.target.checked); if (continuous) startListening(); else if (rec) rec.stop(); };
+if (location.protocol !== 'https:' && location.hostname !== 'localhost') $('#vozWarn').classList.remove('hide');
+if (!SR) $('#vozTxt').textContent = 'Este navegador no reconoce voz. Usá Chrome.';
+window.kittDirectiva = runCommand; // para probar o para que otro programa mande directivas
+try { speechSynthesis.getVoices(); } catch {}
+
+tryAutoReconnect();
+log(hasBT ? 'Listo. Cerrá las apps originales y tocá "Conectar todas".' : 'Bluetooth no disponible en este navegador.');
+})();
+</script>
+</body>
+</html>
