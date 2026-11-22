@@ -96,7 +96,7 @@
       <div id="vozWarn" class="vwarn hide">El micrófono solo funciona si la página se abre desde una dirección <b>https://</b> (por ejemplo GitHub Pages). Abierta como archivo, Chrome no lo permite.</div>
     </div>
   </div>
-  <label class="chk" style="margin-top:10px"><input type="checkbox" id="vozCont"> Escucha continua (responde cuando empezás con "KITT")</label>
+  <label class="chk" style="margin-top:10px"><input type="checkbox" id="vozCont"> Escucha continua (responde cuando empezás con "KITT", "208" o "K208")</label>
 </div>
 
 <!-- COLOR COMPARTIDO -->
@@ -727,7 +727,7 @@ async function runSegment(t, ctx){
   return said;
 }
 // cómo suele escribir "KITT" el reconocimiento de voz en español
-const WAKE = /^(ok |hola |che )?(kitt|kiit|kit|kid|kitty|keat|kit t|kiss|ki|quit|quita|quite|quitt|quid|quick|kitt[ae]|kita|kite|keith|kid)\b[\s,]*/;
+const WAKE = /^(ok |hola |che )?((k|ka|ca|que) ?(208|doscientos ocho)|208|doscientos ocho|kitt|kiit|kit|kid|kitty|keat|kit t|kiss|ki|quit|quita|quite|quitt|quid|quick|kitt[ae]|kita|kite|keith)\b[\s,]*/;
 // Corrige cómo el reconocimiento de voz suele escribir algunas palabras
 function voiceFix(t){
   t = ' ' + t + ' ';
@@ -772,7 +772,7 @@ function speak(text){
 let rec = null, listening = false, continuous = false;
 function setContinuous(on){
   continuous = on; $('#vozCont').checked = on;
-  $('#vozHint').textContent = on ? 'Escucha continua: empezá con "KITT…"' : 'Tocá el micrófono y decí una directiva';
+  $('#vozHint').textContent = on ? 'Escucha continua: empezá con "KITT", "208" o "K208"' : 'Tocá el micrófono y decí una directiva';
 }
 function startListening(){
   if (!SR){ speak('ESTE NAVEGADOR NO RECONOCE VOZ'); return; }
