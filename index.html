@@ -4,7 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0a0a0f">
-<title>Luces 208 · Voz</title>
+<title>Luces 208</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <style>
   :root{
     --bg:#0a0a0f; --panel:#14141c; --line:#262633; --txt:#ecebf2; --dim:#8c8aa0;
@@ -787,6 +790,9 @@ if (location.protocol !== 'https:' && location.hostname !== 'localhost') $('#voz
 if (!SR) $('#vozTxt').textContent = 'Este navegador no reconoce voz. Usá Chrome.';
 window.kittDirectiva = runCommand; // para probar o para que otro programa mande directivas
 try { speechSynthesis.getVoices(); } catch {}
+
+// app instalable y que abra sin señal
+if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 
 tryAutoReconnect();
 log(hasBT ? 'Listo. Cerrá las apps originales y tocá "Conectar todas".' : 'Bluetooth no disponible en este navegador.');
