@@ -726,7 +726,8 @@ async function runSegment(t, ctx){
   if (all && isOff) said.push('LUCES APAGADAS');
   return said;
 }
-const WAKE = /^(ok |hola )?(kitt|kiit|kit|kid|quit|kitty|keat|kit t|kiss|ki)\b\s*/;
+// cómo suele escribir "KITT" el reconocimiento de voz en español
+const WAKE = /^(ok |hola |che )?(kitt|kiit|kit|kid|kitty|keat|kit t|kiss|ki|quit|quita|quite|quitt|quid|quick|kitt[ae]|kita|kite|keith|kid)\b[\s,]*/;
 // Corrige cómo el reconocimiento de voz suele escribir algunas palabras
 function voiceFix(t){
   t = ' ' + t + ' ';
