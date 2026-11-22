@@ -392,7 +392,8 @@ function disconnect(L){
 /* ---------- Acciones ---------- */
 function currentColor(){ return hexToRgb($('#color').value); }
 // curva de brillo: así cada tramo de la barra se nota parejo a la vista
-const bright = p => p >= 100 ? 1 : Math.max(0.01, Math.pow(p / 100, 2));
+// piso de 8% para que los LED nunca queden apagados en los valores bajos
+const bright = p => p >= 100 ? 1 : 0.08 + 0.92 * Math.pow(p / 100, 2);
 function finalColor(L, rgb){
   const k = L.dim ? bright(L.level) : 1;
   return reorder(rgb.map(v => Math.round(v * k)), L.order);
