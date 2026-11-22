@@ -263,8 +263,8 @@ const allServices = () => [...new Set([...BASE_SERVICES, ...LIGHTS.filter(L => L
 
 /* ---------- Luces: las 3 fijas + las agregadas a mano ---------- */
 const DEFAULTS = [
-  { id:'ojos', name:'Ojos de demonio',  prefix:'Triones', proto:'triones',  order:'rgb', fixed:true, words:['ojo','ojos','demonio','demonios','aro','aros'], say:'OJOS' },
-  { id:'drl',  name:'Tiras DRL',        prefix:'LEDDMX',  proto:'leddmx7b', order:'rgb', fixed:true, repeat:true, words:['drl','d r l','de rl','diurnas','diurna','opticas','optica'], say:'DRL' },
+  { id:'ojos', name:'Ojos de demonio',  prefix:'Triones', proto:'triones',  order:'rgb', fixed:true, words:['ojo','ojos','demonio','demonios','aro','aros','angel eyes','ojitos'], say:'OJOS' },
+  { id:'drl',  name:'Tiras DRL',        prefix:'LEDDMX',  proto:'leddmx7b', order:'rgb', fixed:true, repeat:true, words:['drl','diurnas','diurna','opticas','optica'], say:'DRL' },
   { id:'int',  name:'Tiras interiores', prefix:'MELK',    proto:'elk',      order:'rgb', fixed:true, dim:true, words:['interior','interiores','adentro','habitaculo','cabina','puertas','torpedo'], say:'INTERIOR' },
 ];
 const savedFixed = store.get('lights-cfg', {});
@@ -726,9 +726,19 @@ async function runSegment(t, ctx){
   if (all && isOff) said.push('LUCES APAGADAS');
   return said;
 }
-const WAKE = /^(ok |hola )?(kitt|kit|kid|quit|kitty|keat)\b\s*/;
+const WAKE = /^(ok |hola )?(kitt|kiit|kit|kid|quit|kitty|keat|kit t|kiss|ki)\b\s*/;
+// Corrige cómo el reconocimiento de voz suele escribir algunas palabras
+function voiceFix(t){
+  t = ' ' + t + ' ';
+  // letras sueltas seguidas ("d r l", "t r l") → una palabra
+  t = t.replace(/(?: [b-df-hj-np-tv-xz](?= [b-df-hj-np-tv-xz] ))+ [b-df-hj-np-tv-xz](?= )/g, m => ' ' + m.replace(/ /g, ''));
+  // formas en que suele entender "DRL"
+  t = t.replace(/ (trl|tdl|dlr|drl|derl|de rl|dr l|d rl|de r l|de erre ele|de ere ele|de r ele|dere ele|deerreele|d erre ele) /g, ' drl ');
+  t = t.replace(/ (ojos? del demonio|ojos? de demonios) /g, ' ojos de demonio ');
+  return t.trim();
+}
 async function runCommand(raw){
-  const t = norm(raw).replace(WAKE, '');
+  const t = voiceFix(norm(raw).replace(WAKE, ''));
   if (!t) return speak('TE ESCUCHO');
   const ctx = { lastTargets: [] };
   const parts = t.split(/\s+y\s+|,/).map(s => s.trim()).filter(Boolean);
