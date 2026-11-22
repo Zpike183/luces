@@ -200,6 +200,7 @@ const store = {
 };
 function hexToRgb(h){ const n = parseInt(h.slice(1),16); return [(n>>16)&255,(n>>8)&255,n&255]; }
 function reorder([r,g,b], order){ const m = {r,g,b}; return order.split('').map(c => m[c]); }
+const cleanName = n => String(n || '').replace(/\0/g, '').trim();
 const escapeHtml = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const norm = s => String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[.,;:!¡?¿"]/g, ' ').replace(/\s+/g, ' ').trim();
 
@@ -269,7 +270,7 @@ const live = L => Object.assign(L, { power:false, device:null, char:null, queue:
 let LIGHTS = [
   ...DEFAULTS.map(d => Object.assign({}, d, savedFixed[d.id] || {})),
   ...savedExtra,
-].map(L => { L.share = L.share ?? true; L.level = L.level ?? 100; L.order = L.order || 'rgb'; return live(L); });
+].map(L => { if (L.btName) L.btName = cleanName(L.btName); L.share = L.share ?? true; L.level = L.level ?? 100; L.order = L.order || 'rgb'; return live(L); });
 
 function saveCfg(){
   const fixed = {}, extra = [];
@@ -316,7 +317,8 @@ async function findChar(L, server){
 }
 async function attach(L, device){
   L.device = device;
-  if (device.name && device.name !== L.btName){ L.btName = device.name; saveCfg(); }
+  const dn = cleanName(device.name);
+  if (dn && dn !== L.btName){ L.btName = dn; saveCfg(); }
   setStatus(L, 'busy', 'Conectando…');
   if (!device.__kittListen){
     device.__kittListen = true;
@@ -330,7 +332,8 @@ async function attach(L, device){
   log(`${L.name}: conectada (${device.name})`);
 }
 function filtersFor(L){
-  if (L.btName) return [{ name: L.btName }];
+  // por prefijo: algunos controladores (MELK) anuncian el nombre con espacios o un 0 al final
+  if (L.btName) return [{ namePrefix: L.btName.trim() }];
   if (L.prefix) return [{ namePrefix: L.prefix }];
   return KNOWN.map(([p]) => ({ namePrefix: p }));
 }
@@ -354,7 +357,7 @@ async function tryAutoReconnect(){
   try {
     const devs = await navigator.bluetooth.getDevices();
     for (const L of LIGHTS){
-      const d = devs.find(d => L.btName ? d.name === L.btName : (L.prefix && (d.name || '').startsWith(L.prefix)));
+      const d = devs.find(d => L.btName ? cleanName(d.name).startsWith(cleanName(L.btName)) : (L.prefix && (d.name || '').startsWith(L.prefix)));
       if (d) attach(L, d).catch(e => { setStatus(L,'','Tocá Conectar'); log(`${L.name}: ${e.message}`); });
     }
   } catch {}
@@ -366,7 +369,7 @@ async function connectAll(){
     try {
       const devs = await navigator.bluetooth.getDevices();
       for (const L of LIGHTS) if (!L.char && !L.device){
-        const d = devs.find(d => L.btName ? d.name === L.btName : (L.prefix && (d.name || '').startsWith(L.prefix)));
+        const d = devs.find(d => L.btName ? cleanName(d.name).startsWith(cleanName(L.btName)) : (L.prefix && (d.name || '').startsWith(L.prefix)));
         if (d) L.device = d;
       }
     } catch {}
@@ -534,7 +537,7 @@ af('afScan').onclick = async () => {
   try {
     const extra = af('afSvc').value ? [uuidAny(af('afSvc').value)] : [];
     const d = await navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: [...allServices(), ...extra] });
-    pickedDevice = d; af('afBt').value = d.name || '';
+    pickedDevice = d; af('afBt').value = cleanName(d.name);
     const det = detectProto(d.name);
     af('afErr').textContent = det ? `Detectado: ${PROTOCOLS[det].label}` : 'Marca no reconocida: elegí "Otra" y cargá los datos.';
     if (!det){ af('afProto').value = 'custom'; af('afCustom').classList.remove('hide'); }
@@ -557,7 +560,7 @@ af('afSave').onclick = async () => {
                    order: af('afOrder').value, dim: af('afDim').checked, share: true, level: 100, repeat: false });
   LIGHTS.push(L); saveCfg(); renderCard(L); closeAddForm();
   log(`${name}: controlador agregado (${proto === 'custom' ? 'manual' : P(L).label})`);
-  if (pickedDevice && pickedDevice.name === bt){ try { await attach(L, pickedDevice); } catch (e){ log(`${name}: ${e.message}`); } }
+  if (pickedDevice && cleanName(pickedDevice.name) === bt){ try { await attach(L, pickedDevice); } catch (e){ log(`${name}: ${e.message}`); } }
 };
 
 /* ---------- Colores guardados (con nombre) ---------- */
