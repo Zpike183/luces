@@ -741,7 +741,16 @@ async function runCommand(raw){
   const t = voiceFix(norm(raw).replace(WAKE, ''));
   if (!t) return speak('TE ESCUCHO');
   const ctx = { lastTargets: [] };
-  const parts = t.split(/\s+y\s+|,/).map(s => s.trim()).filter(Boolean);
+  const pieces = t.split(/\s+y\s+|,/).map(s => s.trim()).filter(Boolean);
+  // "apagá las drl y los ojos": la parte sin acción se suma a la anterior (o a la siguiente)
+  const hasAction = p => /\b(apaga|apagar|apague|apagame|enciende|encende|encender|prende|prender|prendeme|encendeme|conecta|conectar|desconecta|desconectar|brillo|por ?ciento)\b|%|\bal \d/.test(p) || !!findColor(p);
+  const parts = []; let pending = '';
+  for (const p of pieces){
+    if (hasAction(p)){ parts.push((pending + ' ' + p).trim()); pending = ''; }
+    else if (parts.length) parts[parts.length - 1] += ' ' + p;
+    else pending += ' ' + p;
+  }
+  if (pending.trim()) parts.push(pending.trim());
   let said = [];
   for (const p of parts) said = said.concat(await runSegment(p, ctx));
   if (!said.length) said = ['NO ENTENDI LA DIRECTIVA'];
