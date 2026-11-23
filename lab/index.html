@@ -141,13 +141,15 @@
 <!-- ESCENAS -->
 <div class="card">
   <div class="row" style="justify-content:space-between">
-    <div><div class="name">Escenas</div><div class="sub w">Cada luz con su color. Por voz: "208, modo Tron"</div></div>
+    <div><div class="name">Escenas</div><div class="sub w">Cada luz con su color. Por voz: "208, modo Tron". Para cambiar una: Editar y tocala.</div></div>
     <button class="small" id="scEdit">Editar</button>
   </div>
   <div class="scenes" id="scenes"></div>
-  <button class="small" id="scAdd" style="margin-top:10px">+ Guardar lo actual como escena</button>
+  <button class="small" id="scAdd" style="margin-top:10px">+ Nueva escena</button>
   <div class="form hide" id="scForm" style="margin-top:10px">
     <label>Nombre de la escena<input type="text" id="scName" maxlength="20" placeholder="Ej: Halloween, Ruta, Show"></label>
+    <div class="sub w">Elegí el color de cada luz (se prueba en vivo si está conectada):</div>
+    <div id="scColors" style="display:grid;gap:8px"></div>
     <div class="row"><button class="primary grow" id="scSave">Guardar</button><button class="grow" id="scCancel">Cancelar</button></div>
   </div>
 </div>
@@ -867,7 +869,7 @@ function renderScenes(){
     const dots = LIGHTS.map(L => sc.colors[L.id] ? `<i style="background:${sc.colors[L.id]}"></i>` : '').join('');
     b.innerHTML = `<span class="dots">${dots}</span>${escapeHtml(sc.name)}<b class="x">✕</b>`;
     b.querySelector('.x').onclick = e => { e.stopPropagation(); scenes.splice(i, 1); store.set('scenes', scenes); renderScenes(); };
-    b.onclick = () => applyScene(sc);
+    b.onclick = () => scEditing ? openSceneForm(i) : applyScene(sc);
     box.appendChild(b);
   });
   box.classList.toggle('editing', scEditing);
@@ -883,13 +885,30 @@ async function applyScene(sc){
   }
   return done.length;
 }
-$('#scAdd').onclick = () => { $('#scForm').classList.remove('hide'); $('#scName').value = ''; $('#scName').focus(); };
+let scIndex = -1;   // -1 = escena nueva; si no, la que se está editando
+function openSceneForm(i){
+  scIndex = i;
+  const sc = i >= 0 ? scenes[i] : null;
+  $('#scName').value = sc ? sc.name : '';
+  const box = $('#scColors'); box.innerHTML = '';
+  LIGHTS.forEach(L => {
+    const val = (sc && sc.colors[L.id]) || toHex(L.lastRgb || colorFor(L));
+    const row = document.createElement('div'); row.className = 'row';
+    row.innerHTML = `<input type="color" data-sc="${L.id}" value="${val}" style="width:52px;height:40px;border-radius:10px"><span class="grow">${escapeHtml(L.name)}</span>`;
+    row.querySelector('input').oninput = e => { if (L.char) sendColor(L, hexToRgb(e.target.value)); };   // vista previa
+    box.appendChild(row);
+  });
+  $('#scSave').textContent = sc ? 'Guardar cambios' : 'Guardar';
+  $('#scForm').classList.remove('hide'); $('#scName').focus();
+}
+$('#scAdd').onclick = () => openSceneForm(-1);
 $('#scCancel').onclick = () => $('#scForm').classList.add('hide');
 $('#scSave').onclick = () => {
-  const name = $('#scName').value.trim(); if (!name) return;
+  const name = $('#scName').value.trim(); if (!name) return $('#scName').focus();
   const colors = {};
-  LIGHTS.forEach(L => colors[L.id] = toHex(L.lastRgb || colorFor(L)));
-  scenes.push({ name, colors }); store.set('scenes', scenes); renderScenes();
+  document.querySelectorAll('[data-sc]').forEach(inp => colors[inp.dataset.sc] = inp.value);
+  if (scIndex >= 0) scenes[scIndex] = { name, colors }; else scenes.push({ name, colors });
+  store.set('scenes', scenes); renderScenes();
   $('#scForm').classList.add('hide');
 };
 $('#scEdit').onclick = () => { scEditing = !scEditing; $('#scEdit').textContent = scEditing ? 'Listo' : 'Editar'; $('#scEdit').classList.toggle('primary', scEditing); renderScenes(); };
