@@ -1,0 +1,1157 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0a0a0f">
+<title>Luces Lab</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+  :root{
+    --bg:#0a0a0f; --panel:#14141c; --line:#262633; --txt:#ecebf2; --dim:#8c8aa0;
+    --red:#ff2a2a; --ok:#35d07f; --warn:#ffb020;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;background:var(--bg);color:var(--txt);font:16px/1.4 system-ui,-apple-system,Roboto,sans-serif;padding:16px 16px 40px;max-width:640px;margin-inline:auto}
+  h1{font-size:20px;letter-spacing:.12em;text-transform:uppercase;margin:4px 0 2px}
+  .scanner{height:6px;border-radius:3px;background:#200;overflow:hidden;margin:6px 0 18px;position:relative}
+  .scanner::after{content:"";position:absolute;top:0;bottom:0;width:22%;background:linear-gradient(90deg,transparent,var(--red),transparent);animation:kitt 1.6s ease-in-out infinite alternate}
+  @keyframes kitt{from{left:-5%}to{left:83%}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:14px}
+  .row{display:flex;align-items:center;gap:10px}
+  .grow{flex:1;min-width:0}
+  .name{font-weight:600}
+  .sub{color:var(--dim);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .dot{width:10px;height:10px;border-radius:50%;background:#444;flex:none}
+  .dot.on{background:var(--ok);box-shadow:0 0 8px var(--ok)}
+  .dot.busy{background:var(--warn)}
+  button{font:inherit;color:var(--txt);background:#20202b;border:1px solid var(--line);border-radius:12px;padding:10px 14px;min-height:44px}
+  button:active{transform:scale(.97)}
+  button.primary{background:var(--red);border-color:var(--red);color:#fff;font-weight:600}
+  button.small{padding:6px 10px;min-height:36px;font-size:14px}
+  .big-color{display:flex;gap:14px;align-items:center}
+  input[type=color]{width:84px;height:84px;border:none;border-radius:16px;background:none;padding:0}
+  input[type=range]{width:100%;accent-color:var(--red)}
+  .presets{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px}
+  .preset{aspect-ratio:1;border-radius:14px;border:2px solid transparent;position:relative}
+  .preset span{position:absolute;bottom:4px;left:0;right:0;font-size:11px;text-align:center;color:#fff;text-shadow:0 1px 3px #000}
+  .preset .x{position:absolute;top:-6px;right:-6px;width:26px;height:26px;border-radius:50%;background:#000;border:2px solid var(--red);color:#fff;font-size:14px;line-height:22px;text-align:center;display:none}
+  .editing .preset .x{display:block}
+  .editing .preset:not(.add){animation:wig .25s ease-in-out infinite alternate}
+  @keyframes wig{from{transform:rotate(-2deg)}to{transform:rotate(2deg)}}
+  .preset.add{background:#20202b;border:1px dashed var(--line);font-size:26px;color:var(--dim)}
+  label.chk{display:flex;align-items:center;gap:6px;font-size:14px;color:var(--dim)}
+  select{font:inherit;background:#20202b;color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:6px}
+  .switch{position:relative;width:52px;height:30px;flex:none}
+  .switch input{opacity:0;width:0;height:0}
+  .switch i{position:absolute;inset:0;background:#33333f;border-radius:30px;transition:.2s}
+  .switch i::before{content:"";position:absolute;width:24px;height:24px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s}
+  .switch input:checked + i{background:var(--red)}
+  .switch input:checked + i::before{transform:translateX(22px)}
+  details{margin-top:10px}
+  summary{color:var(--dim);font-size:14px}
+  .adv{display:grid;gap:8px;margin-top:8px}
+  #log{font:12px/1.4 ui-monospace,monospace;color:var(--dim);white-space:pre-wrap;max-height:180px;overflow:auto}
+  .warnbox{border-color:var(--warn);color:var(--warn);display:none}
+  .rgb{display:grid;gap:8px;margin-top:14px}
+  .rgbrow{display:flex;align-items:center;gap:10px}
+  .rgbrow b{width:14px}
+  .rgbrow input[type=range]{flex:1}
+  .rgbrow input[type=number]{width:64px;font:inherit;background:#20202b;color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:6px;text-align:center}
+  .mic{width:72px;height:72px;border-radius:50%;background:#20202b;border:2px solid var(--line);display:flex;align-items:center;justify-content:center;flex:none;padding:0}
+  .mic.on{background:var(--red);border-color:var(--red);box-shadow:0 0 18px var(--red);animation:pulse 1s ease-in-out infinite alternate}
+  @keyframes pulse{from{box-shadow:0 0 6px var(--red)}to{box-shadow:0 0 22px var(--red)}}
+  .vtxt{margin-top:6px;font-size:15px}
+  .vresp{margin-top:4px;color:var(--red);font-weight:600;letter-spacing:.03em;font-size:14px}
+  .addbtn{width:100%;border:1px dashed var(--line);background:transparent;color:var(--dim);font-size:17px;margin-bottom:14px;min-height:52px}
+  button.danger{border-color:var(--red);color:var(--red)}
+  .form{display:grid;gap:10px}
+  .form label{display:grid;gap:4px;font-size:13px;color:var(--dim)}
+  .form input[type=text]{font:inherit;color:var(--txt);background:#20202b;border:1px solid var(--line);border-radius:10px;padding:10px;width:100%}
+  .form .hint{font-size:12px;color:var(--dim)}
+  .hide{display:none!important}
+  .vwarn{margin-top:6px;font-size:13px;color:var(--warn)}
+  .actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .sub.w{white-space:normal}
+  .scenes{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+  .scene{position:relative;display:flex;align-items:center;gap:8px;border-radius:20px;padding:8px 14px}
+  .scene .dots{display:flex;gap:3px}
+  .scene .dots i{width:12px;height:12px;border-radius:50%;display:block;border:1px solid #0006}
+  .scene .x{display:none;margin-left:4px;color:var(--red)}
+  .scenes.editing .scene .x{display:inline}
+  .fxgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+  .meter{height:8px;border-radius:4px;background:#20202b;margin-top:10px;overflow:hidden}
+  .meter div{height:100%;width:0;background:var(--red);transition:width .08s}
+  .row.cal{gap:6px}
+  .row.cal b{font-size:13px;color:var(--dim)}
+  .row.cal input{width:58px;font:inherit;background:#20202b;color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:4px;text-align:center}
+</style>
+</head>
+<body>
+<h1>Luces · Lab</h1>
+<div class="sub w" style="margin-top:-2px">Versión de pruebas: lo que te guste pasa después a Luces 208</div>
+<div class="scanner"></div>
+
+<div class="card warnbox" id="nobt">
+  Este navegador no permite Bluetooth. Abrí la página en <b>Chrome</b> del celular (no dentro de otra app).
+</div>
+
+<!-- DIRECTIVAS POR VOZ -->
+<div class="card voz">
+  <div class="row">
+    <button id="mic" class="mic" aria-label="Hablar"><svg viewBox="0 0 24 24" width="34" height="34" fill="currentColor"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/></svg></button>
+    <div class="grow">
+      <div class="name">Directivas por voz</div>
+      <div class="sub" id="vozHint">Tocá el micrófono y decí una directiva</div>
+      <div id="vozTxt" class="vtxt">Ej: "ojos en rojo", "interiores al 30", "apagá todas"</div>
+      <div id="vozResp" class="vresp"></div>
+      <div id="vozWarn" class="vwarn hide">El micrófono solo funciona si la página se abre desde una dirección <b>https://</b> (por ejemplo GitHub Pages). Abierta como archivo, Chrome no lo permite.</div>
+    </div>
+  </div>
+  <label class="chk" style="margin-top:10px"><input type="checkbox" id="vozCont"> Escucha continua (responde cuando empezás con "KITT", "208" o "K208")</label>
+</div>
+
+<!-- COLOR COMPARTIDO -->
+<div class="card">
+  <div class="big-color">
+    <input type="color" id="color" value="#ffffff">
+    <div class="grow">
+      <div class="name">Color para todas</div>
+      <div class="sub">Se aplica a las luces marcadas como "compartir"</div>
+    </div>
+  </div>
+  <div class="rgb" id="rgb">
+    <div class="rgbrow"><b style="color:#ff5050">R</b><input type="range" min="0" max="255" data-c="0"><input type="number" min="0" max="255" inputmode="numeric" data-c="0"></div>
+    <div class="rgbrow"><b style="color:#50ff80">G</b><input type="range" min="0" max="255" data-c="1"><input type="number" min="0" max="255" inputmode="numeric" data-c="1"></div>
+    <div class="rgbrow"><b style="color:#5090ff">B</b><input type="range" min="0" max="255" data-c="2"><input type="number" min="0" max="255" inputmode="numeric" data-c="2"></div>
+  </div>
+  <div class="row" style="margin-top:14px;justify-content:space-between">
+    <span class="sub">Colores guardados</span>
+    <button class="small" id="editPresets">Editar</button>
+  </div>
+  <div class="presets" id="presets" style="margin-top:8px"></div>
+  <div class="form hide" id="presetForm" style="margin-top:12px">
+    <label><span id="pfTitle">Nombre del color</span><input type="text" id="pfName" maxlength="20" placeholder="Ej: Tron, Halloween, Violeta oscuro"></label>
+    <div class="row"><button class="primary grow" id="pfSave">Guardar</button><button class="grow" id="pfCancel">Cancelar</button></div>
+  </div>
+</div>
+
+<!-- ESCENAS -->
+<div class="card">
+  <div class="row" style="justify-content:space-between">
+    <div><div class="name">Escenas</div><div class="sub w">Cada luz con su color. Por voz: "208, modo Tron"</div></div>
+    <button class="small" id="scEdit">Editar</button>
+  </div>
+  <div class="scenes" id="scenes"></div>
+  <button class="small" id="scAdd" style="margin-top:10px">+ Guardar lo actual como escena</button>
+  <div class="form hide" id="scForm" style="margin-top:10px">
+    <label>Nombre de la escena<input type="text" id="scName" maxlength="20" placeholder="Ej: Halloween, Ruta, Show"></label>
+    <div class="row"><button class="primary grow" id="scSave">Guardar</button><button class="grow" id="scCancel">Cancelar</button></div>
+  </div>
+</div>
+
+<!-- EFECTOS Y MÚSICA -->
+<div class="card">
+  <div class="name">Efectos</div>
+  <div class="sub w">Toda la tira junta, con la app abierta y la pantalla prendida. Activo: <b id="fxName">Ninguno</b></div>
+  <div class="fxgrid">
+    <button class="small" data-fx="respiracion">Respiración</button>
+    <button class="small" data-fx="arcoiris">Arcoíris</button>
+    <button class="small" data-fx="latido">Latido</button>
+    <button class="small" data-fx="fundido">Fundido</button>
+  </div>
+  <div class="row" style="margin-top:10px"><span class="sub">Velocidad</span><input type="range" id="fxSpeed" min="1" max="10" value="4" class="grow"></div>
+  <div class="name" style="margin-top:16px">Al ritmo de la música</div>
+  <div class="sub w">Escucha por el micrófono y las luces laten con los graves. Mientras está activo, la voz se pausa.</div>
+  <div class="row" style="margin-top:10px;gap:8px">
+    <button class="small" id="musBtn">Empezar</button>
+    <select id="musMode"><option value="pulso">Latido del color</option><option value="color">Cambia de color</option></select>
+  </div>
+  <div class="row" style="margin-top:10px"><span class="sub">Sensibilidad</span><input type="range" id="musSens" min="1" max="10" value="5" class="grow"></div>
+  <div class="meter"><div id="musMeter"></div></div>
+  <button class="small" id="fxStop" style="margin-top:12px">Parar efectos y música</button>
+</div>
+
+<!-- OPCIONES Y TEMPORIZADORES -->
+<div class="card">
+  <div class="name">Opciones</div>
+  <label class="chk" style="margin-top:8px"><input type="checkbox" id="opt-welcome"> Saludo al tocar "Conectar todas" (prende en orden y dice "Hola, Diego")</label>
+  <label class="chk" style="margin-top:8px"><input type="checkbox" id="opt-farewell"> Despedida al tocar "Apagar todas"</label>
+  <label class="chk" style="margin-top:8px"><input type="checkbox" id="opt-restore"> Al conectar, volver al último color</label>
+  <div class="name" style="margin-top:16px">Temporizadores</div>
+  <div class="sub w">Por voz: "208, apagá las interiores en 10 minutos". La app tiene que quedar abierta.</div>
+  <div id="timers" style="margin-top:8px;display:grid;gap:6px"></div>
+</div>
+
+<!-- LUCES -->
+<div id="lights"></div>
+<button class="addbtn" id="addLight">+ Agregar controlador</button>
+
+<!-- FORMULARIO: AGREGAR CONTROLADOR -->
+<div class="card hide" id="addForm">
+  <div class="name" style="margin-bottom:10px">Agregar controlador</div>
+  <div class="form">
+    <label>Nombre de la luz<input type="text" id="afName" maxlength="30" placeholder="Ej: Chasis"></label>
+    <label>Nombre Bluetooth (el "Local name" de LightBlue)
+      <div class="row"><input type="text" id="afBt" class="grow" placeholder="Ej: Triones:1234"><button class="small" id="afScan">Buscar</button></div>
+      <span class="hint">Con "Buscar" lo elegís de la lista y se completa solo. Cerrá antes la app original.</span>
+    </label>
+    <label>Familia / protocolo
+      <select id="afProto">
+        <option value="">Automático (según el nombre)</option>
+        <option value="triones">Triones / HappyLighting</option>
+        <option value="leddmx7b">LEDDMX (7B…BF)</option>
+        <option value="leddmxAuto">LEDDMX (auto: prueba 7B y 7E)</option>
+        <option value="elk">ELK-BLEDOM / MELK</option>
+        <option value="custom">Otra (cargar datos a mano)</option>
+      </select>
+    </label>
+    <div id="afCustom" class="form hide">
+      <label>Servicio (ej: FFE0)<input type="text" id="afSvc" placeholder="FFE0"></label>
+      <label>Característica de escritura, la que dice "Write" (ej: FFE1)<input type="text" id="afChr" placeholder="FFE1"></label>
+      <label>Comando prender (en hex)<input type="text" id="afOn" placeholder="Ej: CC 23 33"></label>
+      <label>Comando apagar (en hex)<input type="text" id="afOff" placeholder="Ej: CC 24 33"></label>
+      <label>Comando color (en hex, con RR GG BB donde va el color)<input type="text" id="afCol" placeholder="Ej: 56 RR GG BB 00 F0 AA"></label>
+      <span class="hint">Los comandos no aparecen en LightBlue: hay que capturarlos de la app original o encontrarlos documentados.</span>
+    </div>
+    <label>Tipo de tira
+      <select id="afType"><option value="rgb">RGB común (4 cables)</option><option value="pixel">Micropíxel (3 cables)</option></select>
+    </label>
+    <label>Orden de color
+      <select id="afOrder"><option>rgb</option><option>grb</option><option>brg</option><option>rbg</option><option>gbr</option><option>bgr</option></select>
+    </label>
+    <label class="chk"><input type="checkbox" id="afDim"> Brillo propio (barra de brillo)</label>
+    <div id="afErr" class="vresp"></div>
+    <div class="row"><button class="primary grow" id="afSave">Guardar</button><button class="grow" id="afCancel">Cancelar</button></div>
+  </div>
+</div>
+
+<button id="connectAll" style="width:100%;margin-bottom:10px">Conectar todas</button>
+<div class="actions">
+  <button class="primary" id="allOn">Prender todas</button>
+  <button id="allOff">Apagar todas</button>
+</div>
+<div style="height:10px"></div>
+<button id="disconnectAll" style="width:100%">Desconectar todas (para usar las apps originales)</button>
+
+<div class="card" style="margin-top:14px">
+  <details>
+    <summary>Registro (para diagnóstico)</summary>
+    <div id="log"></div>
+  </details>
+</div>
+
+<script>
+(() => {
+'use strict';
+
+/* ---------- Utilidades ---------- */
+const $ = s => document.querySelector(s);
+const logEl = $('#log');
+function log(msg){
+  const t = new Date().toLocaleTimeString();
+  logEl.textContent = `[${t}] ${msg}\n` + logEl.textContent.slice(0, 4000);
+}
+const uuid16 = n => `0000${n}-0000-1000-8000-00805f9b34fb`;
+// acepta "FFE0", "0xffe0" o un UUID completo
+const uuidAny = s => { s = String(s || '').trim().toLowerCase().replace(/^0x/, ''); return /^[0-9a-f]{4}$/.test(s) ? uuid16(s) : s; };
+const hex = arr => Array.from(arr, b => b.toString(16).padStart(2,'0')).join(' ');
+const store = {
+  get(k, d){ try { const v = localStorage.getItem('lab-' + k); return v ? JSON.parse(v) : d; } catch { return d; } },
+  set(k, v){ try { localStorage.setItem('lab-' + k, JSON.stringify(v)); } catch {} }
+};
+function hexToRgb(h){ const n = parseInt(h.slice(1),16); return [(n>>16)&255,(n>>8)&255,n&255]; }
+function reorder([r,g,b], order){ const m = {r,g,b}; return order.split('').map(c => m[c]); }
+const cleanName = n => String(n || '').replace(/\0/g, '').trim();
+const escapeHtml = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const norm = s => String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[.,;:!¡?¿"]/g, ' ').replace(/\s+/g, ' ').trim();
+
+/* ---------- Protocolos ---------- */
+const PROTOCOLS = {
+  triones: {
+    label: 'Triones / HappyLighting',
+    targets: [['ffd5','ffd9'], ['ffe5','ffe9']],
+    on:  () => [[0xCC,0x23,0x33]],
+    off: () => [[0xCC,0x24,0x33]],
+    color: ([r,g,b]) => [[0x56,r,g,b,0x00,0xF0,0xAA]],
+  },
+  elk: {
+    label: 'ELK-BLEDOM / MELK',
+    targets: [['fff0','fff3'], ['ffe0','ffe1']],
+    on:  () => [[0x7E,0x00,0x04,0xF0,0x00,0x01,0xFF,0x00,0xEF]],
+    off: () => [[0x7E,0x00,0x04,0x00,0x00,0x00,0xFF,0x00,0xEF]],
+    color: ([r,g,b]) => [[0x7E,0x00,0x05,0x03,r,g,b,0x00,0xEF]],
+  },
+  leddmx7b: {
+    label: 'LEDDMX (7B…BF)',
+    targets: [['ffe0','ffe1']],
+    on:  () => [[0x7B,0xFF,0x04,0x01,0xFF,0xFF,0xFF,0xFF,0xBF]],
+    off: () => [[0x7B,0x04,0x04,0x00,0xFF,0xFF,0xFF,0xFF,0xBF]],
+    color: ([r,g,b]) => [[0x7B,0xFF,0x07,r,g,b,0xFF,0xFF,0xBF]],
+  },
+  leddmxAuto: {
+    label: 'LEDDMX (auto: prueba 7B y 7E)',
+    targets: [['ffe0','ffe1']],
+    on:  () => [...PROTOCOLS.leddmx7b.on(), ...PROTOCOLS.elk.on()],
+    off: () => [...PROTOCOLS.leddmx7b.off(), ...PROTOCOLS.elk.off()],
+    color: c => [...PROTOCOLS.leddmx7b.color(c), ...PROTOCOLS.elk.color(c)],
+  },
+};
+const KNOWN = [['Triones','triones'], ['LEDDMX','leddmx7b'], ['MELK','elk'], ['ELK','elk'], ['LEDBLE','elk']];
+const detectProto = name => (KNOWN.find(([p]) => (name || '').toUpperCase().startsWith(p.toUpperCase())) || [])[1] || null;
+
+// "CC 23 33" → [0xCC,0x23,0x33]; "56 RR GG BB 00 F0 AA" con el color
+function parseHexCmd(str, rgb){
+  if (!str) return [];
+  const toks = str.trim().split(/[\s,:]+/).filter(Boolean);
+  const map = { RR: rgb && rgb[0], GG: rgb && rgb[1], BB: rgb && rgb[2] };
+  const out = toks.map(t => { const u = t.toUpperCase().replace(/^0X/, ''); return u in map ? map[u] : parseInt(u, 16); });
+  return out.some(v => v === undefined || isNaN(v) || v < 0 || v > 255) ? [] : [out];
+}
+// protocolo de una luz (los cargados a mano se arman con sus datos)
+function P(L){
+  if (L.proto === 'custom'){
+    const c = L.custom || {};
+    return { label:'Otra (manual)', targets: [[c.svc, c.chr]], custom:true,
+      on: () => parseHexCmd(c.on), off: () => parseHexCmd(c.off), color: rgb => parseHexCmd(c.color, rgb) };
+  }
+  return PROTOCOLS[L.proto] || PROTOCOLS.elk;
+}
+const BASE_SERVICES = [...new Set(Object.values(PROTOCOLS).flatMap(p => p.targets.map(t => uuid16(t[0]))))];
+const allServices = () => [...new Set([...BASE_SERVICES, ...LIGHTS.filter(L => L.proto === 'custom' && L.custom && L.custom.svc).map(L => uuidAny(L.custom.svc))])];
+
+/* ---------- Luces: las 3 fijas + las agregadas a mano ---------- */
+const DEFAULTS = [
+  { id:'ojos', name:'Ojos de demonio',  prefix:'Triones', proto:'triones',  order:'rgb', fixed:true, cal:[100,90,70], words:['ojo','ojos','demonio','demonios','aro','aros','angel eyes','ojitos'], say:'OJOS' },
+  { id:'drl',  name:'Tiras DRL',        prefix:'LEDDMX',  proto:'leddmx7b', order:'rgb', fixed:true, repeat:true, words:['drl','diurnas','diurna','opticas','optica'], say:'DRL' },
+  { id:'int',  name:'Tiras interiores', prefix:'MELK',    proto:'elk',      order:'rgb', fixed:true, dim:true, words:['interior','interiores','adentro','habitaculo','cabina','puertas','torpedo'], say:'INTERIOR' },
+];
+const savedFixed = store.get('lights-cfg', {});
+const savedExtra = store.get('lights-extra', []);
+const live = L => Object.assign(L, { power:false, device:null, char:null, queue:Promise.resolve(), rpt:null });
+const LAST = store.get('last-state', {});
+const saveLast = () => { const o = {}; LIGHTS.forEach(L => o[L.id] = { rgb: L.lastRgb, power: L.lastPower }); store.set('last-state', o); };
+let LIGHTS = [
+  ...DEFAULTS.map(d => Object.assign({}, d, savedFixed[d.id] || {})),
+  ...savedExtra,
+].map(L => { if (L.btName) L.btName = cleanName(L.btName); L.share = L.share ?? true; L.level = L.level ?? 100; L.order = L.order || 'rgb'; L.cal = L.cal || [100,100,100]; const ls = LAST[L.id]; if (ls){ L.lastRgb = ls.rgb; L.lastPower = ls.power; } return live(L); });
+
+function saveCfg(){
+  const fixed = {}, extra = [];
+  for (const L of LIGHTS){
+    const base = { proto:L.proto, order:L.order, share:L.share, level:L.level, btName:L.btName || '', repeat:!!L.repeat, cal:L.cal };
+    if (L.fixed) fixed[L.id] = base;
+    else extra.push({ ...base, id:L.id, name:L.name, dim:!!L.dim, type:L.type, custom:L.custom });
+  }
+  store.set('lights-cfg', fixed);
+  store.set('lights-extra', extra);
+}
+
+/* ---------- Bluetooth ---------- */
+const hasBT = !!(navigator.bluetooth);
+if (!hasBT) $('#nobt').style.display = 'block';
+
+function enqueue(L, fn){
+  L.queue = L.queue.then(fn).catch(e => log(`${L.name}: ${e.message}`));
+  return L.queue;
+}
+async function writeCmds(L, cmds, quiet){
+  if (!L.char) return;
+  for (const c of cmds){
+    if (!c.length) continue;
+    const data = new Uint8Array(c);
+    if (L.char.properties.writeWithoutResponse && L.char.writeValueWithoutResponse)
+      await L.char.writeValueWithoutResponse(data);
+    else
+      await L.char.writeValue(data);
+    if (!quiet) log(`${L.name} ← ${hex(data)}`);
+    await new Promise(r => setTimeout(r, 25));
+  }
+}
+async function findChar(L, server){
+  for (const [s, c] of P(L).targets){
+    try {
+      const svc = await server.getPrimaryService(uuidAny(s));
+      const ch = await svc.getCharacteristic(uuidAny(c));
+      log(`${L.name}: usando servicio ${s} / ${c}`);
+      return ch;
+    } catch {}
+  }
+  throw new Error('no encontré dónde escribir (servicio no compatible)');
+}
+async function attach(L, device){
+  L.device = device;
+  const dn = cleanName(device.name);
+  if (dn && dn !== L.btName){ L.btName = dn; saveCfg(); }
+  setStatus(L, 'busy', 'Conectando…');
+  if (!device.__kittListen){
+    device.__kittListen = true;
+    device.addEventListener('gattserverdisconnected', () => {
+      L.char = null; setStatus(L, '', 'Desconectada'); log(`${L.name}: desconectada`);
+    });
+  }
+  const server = await device.gatt.connect();
+  L.char = await findChar(L, server);
+  setStatus(L, 'on', device.name || 'Conectada');
+  log(`${L.name}: conectada (${device.name})`);
+  if (!bulkConnect && OPTS.restore && L.lastRgb){
+    const p = P(L); L.power = L.lastPower !== false; renderPower(L);
+    enqueue(L, async () => { await writeCmds(L, L.power ? p.on() : p.off()); if (L.power) await writeCmds(L, p.color(finalColor(L, L.lastRgb))); });
+  }
+}
+function filtersFor(L){
+  // por prefijo: algunos controladores (MELK) anuncian el nombre con espacios o un 0 al final
+  if (L.btName) return [{ namePrefix: L.btName.trim() }];
+  if (L.prefix) return [{ namePrefix: L.prefix }];
+  return KNOWN.map(([p]) => ({ namePrefix: p }));
+}
+async function connect(L){
+  if (!hasBT) return false;
+  try {
+    const device = await navigator.bluetooth.requestDevice({ filters: filtersFor(L), optionalServices: allServices() });
+    await attach(L, device);
+    return true;
+  } catch (e){
+    setStatus(L, '', 'Sin conectar');
+    if (e.name === 'NotFoundError') log(`${L.name}: búsqueda cancelada o no apareció. ¿Está cerrada la app original?`);
+    else if (e.name === 'SecurityError') log(`${L.name}: Chrome pide que toques "Conectar" en esta luz.`);
+    else log(`${L.name}: ${e.message}`);
+    return false;
+  }
+}
+// Reconexión sin elegir de nuevo (si Chrome recuerda los permisos)
+async function tryAutoReconnect(){
+  if (!hasBT || !navigator.bluetooth.getDevices) return;
+  try {
+    const devs = await navigator.bluetooth.getDevices();
+    for (const L of LIGHTS){
+      const d = devs.find(d => L.btName ? cleanName(d.name).startsWith(cleanName(L.btName)) : (L.prefix && (d.name || '').startsWith(L.prefix)));
+      if (d) attach(L, d).catch(e => { setStatus(L,'','Tocá Conectar'); log(`${L.name}: ${e.message}`); });
+    }
+  } catch {}
+}
+// Conectar todas: reconecta sin listas las que ya se eligieron; para las demás abre la lista una tras otra
+let bulkConnect = false;
+async function connectAll(){
+  if (!hasBT) return;
+  bulkConnect = true;
+  if (navigator.bluetooth.getDevices){
+    try {
+      const devs = await navigator.bluetooth.getDevices();
+      for (const L of LIGHTS) if (!L.char && !L.device){
+        const d = devs.find(d => L.btName ? cleanName(d.name).startsWith(cleanName(L.btName)) : (L.prefix && (d.name || '').startsWith(L.prefix)));
+        if (d) L.device = d;
+      }
+    } catch {}
+  }
+  for (const L of LIGHTS){
+    if (L.char) continue;
+    if (L.device){ try { await attach(L, L.device); continue; } catch (e){ log(`${L.name}: ${e.message}`); } }
+    await connect(L);
+  }
+  bulkConnect = false;
+  if (OPTS.welcome) welcomeSequence();
+  else if (OPTS.restore) LIGHTS.filter(L => L.char && L.lastRgb).forEach(L => { setPower(L, L.lastPower !== false); if (L.lastPower !== false) sendColor(L, L.lastRgb); });
+}
+function disconnect(L){
+  clearTimeout(L.rpt);
+  if (L.device && L.device.gatt.connected) L.device.gatt.disconnect();
+  L.char = null; setStatus(L, '', 'Desconectada');
+}
+
+/* ---------- Acciones ---------- */
+function currentColor(){ return hexToRgb($('#color').value); }
+// curva de brillo: así cada tramo de la barra se nota parejo a la vista
+// piso de 8% para que los LED nunca queden apagados en los valores bajos
+const bright = p => p >= 100 ? 1 : 0.08 + 0.92 * Math.pow(p / 100, 2);
+function finalColor(L, rgb){
+  const k = L.dim ? bright(L.level) : 1;
+  const cal = L.cal || [100,100,100];
+  return reorder(rgb.map((v, i) => Math.round(v * k * cal[i] / 100)), L.order);
+}
+function colorFor(L){
+  const own = document.getElementById('own-' + L.id);
+  return L.share || !own ? currentColor() : hexToRgb(own.value);
+}
+function sendColor(L, rgb, fromFx){
+  if (!fromFx){ stopFx(true); stopMusic(true); L.lastRgb = rgb; saveLast(); }
+  if (!L.char) return Promise.resolve();
+  const p = P(L), out = finalColor(L, rgb);
+  const q = enqueue(L, () => writeCmds(L, p.color(out)));
+  if (L.repeat){ // se manda de nuevo por si el controlador no lo tomó
+    clearTimeout(L.rpt);
+    L.rpt = setTimeout(() => enqueue(L, () => writeCmds(L, p.color(out))), 200);
+  }
+  return q;
+}
+function setPower(L, on){
+  L.power = on; L.lastPower = on; saveLast(); renderPower(L);
+  if (!L.char) return Promise.resolve();
+  const p = P(L);
+  return enqueue(L, async () => {
+    await writeCmds(L, on ? p.on() : p.off());
+    if (on) await writeCmds(L, p.color(finalColor(L, colorFor(L))));
+  });
+}
+let pending = null;
+function applyShared(){
+  if (pending) return;
+  pending = setTimeout(() => {
+    pending = null;
+    const rgb = currentColor();
+    LIGHTS.filter(L => L.share && L.char).forEach(L => sendColor(L, rgb));
+  }, 90);
+}
+
+/* ---------- Interfaz de cada luz ---------- */
+function setStatus(L, cls, text){
+  const el = document.getElementById('st-' + L.id);
+  if (!el) return;
+  el.querySelector('.dot').className = 'dot ' + cls;
+  el.querySelector('.sub').textContent = text;
+  document.getElementById('cn-' + L.id).textContent = cls === 'on' ? 'Desconectar' : 'Conectar';
+}
+function renderPower(L){ const el = document.getElementById('pw-' + L.id); if (el) el.checked = L.power; }
+
+const host = $('#lights');
+function renderCard(L){
+  const card = document.createElement('div');
+  card.className = 'card'; card.id = 'card-' + L.id;
+  const protoOpts = Object.entries(PROTOCOLS).map(([k,p]) => `<option value="${k}" ${k===L.proto?'selected':''}>${p.label}</option>`).join('')
+    + (L.proto === 'custom' ? `<option value="custom" selected>Otra (manual)</option>` : '');
+  card.innerHTML = `
+    <div class="row">
+      <div class="grow" id="st-${L.id}">
+        <div class="name">${escapeHtml(L.name)}</div>
+        <div class="row" style="gap:6px"><span class="dot"></span><span class="sub">${L.btName ? escapeHtml(L.btName) + ' · sin conectar' : 'Sin conectar'}</span></div>
+      </div>
+      <button class="small" id="cn-${L.id}">Conectar</button>
+      <label class="switch"><input type="checkbox" id="pw-${L.id}"><i></i></label>
+    </div>
+    <div class="row" style="margin-top:10px;justify-content:space-between">
+      <label class="chk"><input type="checkbox" id="sh-${L.id}" ${L.share?'checked':''}> Compartir color</label>
+      <input type="color" id="own-${L.id}" value="#ffffff" style="width:44px;height:36px;border-radius:10px;${L.share?'opacity:.3':''}">
+    </div>
+    ${L.dim ? `
+    <div class="row" style="margin-top:10px">
+      <span class="sub">Brillo</span>
+      <input type="range" id="lv-${L.id}" min="5" max="100" value="${L.level}" class="grow">
+      <span id="lvv-${L.id}" class="sub" style="width:44px;text-align:right">${L.level}%</span>
+    </div>` : ''}
+    <details>
+      <summary>Ajustes avanzados</summary>
+      <div class="adv">
+        <label class="chk">Protocolo <select id="pr-${L.id}">${protoOpts}</select></label>
+        <label class="chk">Orden de color (si sale cambiado)
+          <select id="or-${L.id}">${['rgb','grb','brg','rbg','gbr','bgr'].map(o => `<option ${o===L.order?'selected':''}>${o}</option>`).join('')}</select>
+        </label>
+        <label class="chk"><input type="checkbox" id="rp-${L.id}" ${L.repeat?'checked':''}> Repetir el color (si a veces no lo toma a la primera)</label>
+        <div class="sub">Calibración (% de cada canal, para que el blanco no tire a un color)</div>
+        <div class="row cal">${['R','G','B'].map((c,i) => `<b>${c}</b><input type="number" min="0" max="100" inputmode="numeric" data-cal="${i}" value="${L.cal[i]}">`).join('')}</div>
+        <div class="row" style="gap:6px;flex-wrap:wrap">
+          <button class="small" data-t="ff0000">Probar rojo</button>
+          <button class="small" data-t="00ff00">Verde</button>
+          <button class="small" data-t="0000ff">Azul</button>
+        </div>
+        ${L.fixed ? '' : `<div><button class="small danger" id="rm-${L.id}">Quitar controlador</button></div>`}
+      </div>
+    </details>`;
+  host.appendChild(card);
+
+  const q = s => card.querySelector(s);
+  q('#cn-' + L.id).onclick = () => (L.char ? disconnect(L) : connect(L));
+  q('#pw-' + L.id).onchange = e => setPower(L, e.target.checked);
+  q('#sh-' + L.id).onchange = e => {
+    L.share = e.target.checked; saveCfg();
+    q('#own-' + L.id).style.opacity = L.share ? .3 : 1;
+    sendColor(L, colorFor(L));
+  };
+  q('#own-' + L.id).oninput = e => { if (!L.share) sendColor(L, hexToRgb(e.target.value)); };
+  if (L.dim){
+    let tm = null;
+    q('#lv-' + L.id).oninput = e => {
+      L.level = +e.target.value;
+      q('#lvv-' + L.id).textContent = L.level + '%';
+      saveCfg();
+      if (tm) return;
+      tm = setTimeout(() => { tm = null; sendColor(L, colorFor(L)); }, 90);
+    };
+  }
+  q('#pr-' + L.id).onchange = async e => {
+    L.proto = e.target.value; saveCfg();
+    if (L.device && L.device.gatt.connected){
+      try { L.char = await findChar(L, L.device.gatt); } catch(err){ log(`${L.name}: ${err.message}`); }
+    }
+  };
+  q('#or-' + L.id).onchange = e => { L.order = e.target.value; saveCfg(); sendColor(L, colorFor(L)); };
+  q('#rp-' + L.id).onchange = e => { L.repeat = e.target.checked; saveCfg(); };
+  card.querySelectorAll('[data-cal]').forEach(inp => inp.oninput = () => {
+    const v = parseInt(inp.value, 10); if (isNaN(v)) return;
+    L.cal[inp.dataset.cal] = Math.max(0, Math.min(100, v)); saveCfg(); sendColor(L, colorFor(L));
+  });
+  card.querySelectorAll('[data-t]').forEach(b => b.onclick = () => sendColor(L, hexToRgb('#' + b.dataset.t)));
+  if (!L.fixed){
+    let armed = false;
+    q('#rm-' + L.id).onclick = e => {
+      if (!armed){ armed = true; e.target.textContent = '¿Seguro? Tocá de nuevo'; setTimeout(() => { armed = false; e.target.textContent = 'Quitar controlador'; }, 3000); return; }
+      disconnect(L); LIGHTS = LIGHTS.filter(x => x !== L); saveCfg(); card.remove();
+    };
+  }
+}
+LIGHTS.forEach(renderCard);
+
+/* ---------- Agregar controlador a mano ---------- */
+let pickedDevice = null;
+const af = id => $('#' + id);
+function openAddForm(){
+  ['afName','afBt','afSvc','afChr','afOn','afOff','afCol'].forEach(id => af(id).value = '');
+  af('afProto').value = ''; af('afType').value = 'rgb'; af('afOrder').value = 'rgb'; af('afDim').checked = false;
+  af('afErr').textContent = ''; af('afCustom').classList.add('hide'); pickedDevice = null;
+  af('addForm').classList.remove('hide'); af('addLight').classList.add('hide');
+  af('afName').focus();
+}
+function closeAddForm(){ af('addForm').classList.add('hide'); af('addLight').classList.remove('hide'); }
+af('addLight').onclick = openAddForm;
+af('afCancel').onclick = closeAddForm;
+af('afProto').onchange = e => af('afCustom').classList.toggle('hide', e.target.value !== 'custom');
+af('afScan').onclick = async () => {
+  if (!hasBT) return;
+  try {
+    const extra = af('afSvc').value ? [uuidAny(af('afSvc').value)] : [];
+    const d = await navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: [...allServices(), ...extra] });
+    pickedDevice = d; af('afBt').value = cleanName(d.name);
+    const det = detectProto(d.name);
+    af('afErr').textContent = det ? `Detectado: ${PROTOCOLS[det].label}` : 'Marca no reconocida: elegí "Otra" y cargá los datos.';
+    if (!det){ af('afProto').value = 'custom'; af('afCustom').classList.remove('hide'); }
+  } catch (e){ if (e.name !== 'NotFoundError') af('afErr').textContent = e.message; }
+};
+af('afSave').onclick = async () => {
+  const name = af('afName').value.trim(), bt = af('afBt').value.trim();
+  if (!name) return af('afErr').textContent = 'Falta el nombre de la luz.';
+  if (!bt) return af('afErr').textContent = 'Falta el nombre Bluetooth (tocá "Buscar" o copialo de LightBlue).';
+  let proto = af('afProto').value || detectProto(bt);
+  if (!proto) return af('afErr').textContent = 'No reconozco esa marca: elegí la familia o "Otra".';
+  let custom = null;
+  if (proto === 'custom'){
+    custom = { svc: af('afSvc').value.trim(), chr: af('afChr').value.trim(), on: af('afOn').value.trim(), off: af('afOff').value.trim(), color: af('afCol').value.trim() };
+    if (!custom.svc || !custom.chr) return af('afErr').textContent = 'Faltan el servicio y la característica.';
+    if (!parseHexCmd(custom.color, [1,2,3]).length || !/RR/i.test(custom.color)) return af('afErr').textContent = 'El comando de color tiene que estar en hex e incluir RR GG BB.';
+    if ((custom.on && !parseHexCmd(custom.on).length) || (custom.off && !parseHexCmd(custom.off).length)) return af('afErr').textContent = 'Revisá los comandos de prender y apagar (en hex, ej: CC 23 33).';
+  }
+  const L = live({ id: 'x' + Date.now().toString(36), name, btName: bt, proto, custom, type: af('afType').value,
+                   order: af('afOrder').value, dim: af('afDim').checked, share: true, level: 100, repeat: false });
+  LIGHTS.push(L); saveCfg(); renderCard(L); closeAddForm();
+  log(`${name}: controlador agregado (${proto === 'custom' ? 'manual' : P(L).label})`);
+  if (pickedDevice && cleanName(pickedDevice.name) === bt){ try { await attach(L, pickedDevice); } catch (e){ log(`${name}: ${e.message}`); } }
+};
+
+/* ---------- Colores guardados (con nombre) ---------- */
+const DEFAULT_PRESETS = [
+  ['Rojo KITT','#ff0000'], ['Blanco','#ffffff'], ['Azul','#0040ff'], ['Cian','#00e5ff'],
+  ['Violeta','#9b30ff'], ['Verde','#00ff40'], ['Ámbar','#ff8c00'],
+];
+let presets = store.get('presets', DEFAULT_PRESETS);
+let editing = false, pfMode = null, pfIndex = -1;
+function renderPresets(){
+  const box = $('#presets'); box.innerHTML = '';
+  presets.forEach(([n, c], i) => {
+    const b = document.createElement('button');
+    b.className = 'preset'; b.style.background = c;
+    b.innerHTML = `<span>${escapeHtml(n)}</span><div class="x">✕</div>`;
+    b.querySelector('.x').onclick = e => { // borrar
+      e.stopPropagation(); presets.splice(i,1); store.set('presets', presets); renderPresets(); closePresetForm();
+    };
+    b.onclick = () => {
+      if (editing) return openPresetForm('rename', i); // en edición, tocar el color le cambia el nombre
+      $('#color').value = c; syncRgbFromColor(); applyShared();
+    };
+    box.appendChild(b);
+  });
+  const add = document.createElement('button');
+  add.className = 'preset add'; add.textContent = '+'; add.title = 'Guardar color actual';
+  add.onclick = () => openPresetForm('add');
+  box.appendChild(add);
+}
+function openPresetForm(mode, i = -1){
+  pfMode = mode; pfIndex = i;
+  $('#pfTitle').textContent = mode === 'add' ? 'Nombre para el color actual' : 'Nuevo nombre para este color';
+  $('#pfName').value = mode === 'add' ? '' : presets[i][0];
+  $('#presetForm').classList.remove('hide'); $('#pfName').focus();
+}
+function closePresetForm(){ $('#presetForm').classList.add('hide'); pfMode = null; }
+$('#pfCancel').onclick = closePresetForm;
+$('#pfSave').onclick = () => {
+  const n = $('#pfName').value.trim() || 'Mío';
+  if (pfMode === 'add') presets.push([n, $('#color').value]);
+  else if (pfMode === 'rename' && presets[pfIndex]) presets[pfIndex][0] = n;
+  store.set('presets', presets); renderPresets(); closePresetForm();
+};
+$('#pfName').addEventListener('keydown', e => { if (e.key === 'Enter') $('#pfSave').click(); });
+$('#editPresets').onclick = () => {
+  editing = !editing;
+  $('#presets').classList.toggle('editing', editing);
+  $('#editPresets').textContent = editing ? 'Listo' : 'Editar';
+  $('#editPresets').classList.toggle('primary', editing);
+  if (!editing) closePresetForm();
+};
+renderPresets();
+
+/* ---------- Controles generales ---------- */
+const rgbInputs = document.querySelectorAll('#rgb input');
+function syncRgbFromColor(){
+  const c = hexToRgb($('#color').value);
+  rgbInputs.forEach(i => i.value = c[i.dataset.c]);
+}
+rgbInputs.forEach(inp => inp.addEventListener('input', () => {
+  let v = parseInt(inp.value, 10);
+  if (isNaN(v)) return;
+  v = Math.max(0, Math.min(255, v));
+  const c = hexToRgb($('#color').value);
+  c[inp.dataset.c] = v;
+  $('#color').value = '#' + c.map(x => x.toString(16).padStart(2,'0')).join('');
+  rgbInputs.forEach(i => { if (i !== inp && i.dataset.c === inp.dataset.c) i.value = v; });
+  applyShared();
+}));
+rgbInputs.forEach(inp => inp.addEventListener('blur', syncRgbFromColor));
+syncRgbFromColor();
+
+$('#color').addEventListener('input', () => { syncRgbFromColor(); applyShared(); });
+$('#connectAll').onclick = connectAll;
+$('#allOn').onclick  = () => LIGHTS.filter(L => L.char).forEach(L => setPower(L, true));
+$('#allOff').onclick = () => OPTS.farewell ? farewellSequence() : LIGHTS.filter(L => L.char).forEach(L => setPower(L, false));
+$('#disconnectAll').onclick = () => LIGHTS.forEach(disconnect);
+
+
+/* =====================================================================
+   LUCES LAB: funciones nuevas en prueba
+   ===================================================================== */
+const OPTS = Object.assign({ welcome: true, farewell: true, restore: true }, store.get('opts', {}));
+const saveOpts = () => store.set('opts', OPTS);
+
+/* ---------- Colores: utilidades ---------- */
+function hsv(h, s = 1, v = 1){
+  h = ((h % 360) + 360) % 360;
+  const c = v * s, x = c * (1 - Math.abs((h / 60) % 2 - 1)), m = v - c;
+  const [r, g, b] = h < 60 ? [c,x,0] : h < 120 ? [x,c,0] : h < 180 ? [0,c,x] : h < 240 ? [0,x,c] : h < 300 ? [x,0,c] : [c,0,x];
+  return [r, g, b].map(t => Math.round((t + m) * 255));
+}
+function hueOf([r, g, b]){
+  r /= 255; g /= 255; b /= 255;
+  const mx = Math.max(r,g,b), mn = Math.min(r,g,b), d = mx - mn;
+  if (!d) return 0;
+  const h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return (h * 60 + 360) % 360;
+}
+const toHex = rgb => '#' + rgb.map(x => x.toString(16).padStart(2,'0')).join('');
+
+/* ---------- Envío "en vivo" para efectos y música (no se guarda como último color) ---------- */
+function liveSend(L, rgb){
+  if (!L.char || L.inflight) return;           // si el controlador está ocupado, se saltea un cuadro
+  L.inflight = true;
+  enqueue(L, () => writeCmds(L, P(L).color(finalColor(L, rgb)), true)).finally(() => { L.inflight = false; });
+}
+const fxTargets = () => LIGHTS.filter(L => L.char && L.share);
+
+/* ---------- Efectos de tira completa ---------- */
+let fx = null;
+function stopFx(silent){
+  if (!fx) return;
+  clearInterval(fx.timer); fx = null;
+  $('#fxName').textContent = 'Ninguno';
+  document.querySelectorAll('[data-fx]').forEach(b => b.classList.remove('primary'));
+  if (!silent) LIGHTS.filter(L => L.char && L.share).forEach(L => sendColor(L, colorFor(L), true));
+}
+function startFx(kind){
+  stopMusic(true); stopFx(true);
+  const base = currentColor(), baseHue = hueOf(base);
+  const t0 = performance.now();
+  fx = { kind, timer: setInterval(() => {
+    const speed = +$('#fxSpeed').value;              // 1 a 10
+    const t = (performance.now() - t0) / 1000 * (0.25 + speed * 0.18);
+    let rgb;
+    if (kind === 'respiracion'){
+      const k = 0.12 + 0.88 * (0.5 + 0.5 * Math.sin(t * 2));
+      rgb = base.map(v => Math.round(v * k));
+    } else if (kind === 'arcoiris'){
+      rgb = hsv(baseHue + t * 60);
+    } else if (kind === 'latido'){
+      const ph = (t * 1.2) % 1;                       // dos golpes y pausa
+      const k = ph < 0.12 ? 1 : ph < 0.22 ? 0.25 : ph < 0.34 ? 0.85 : 0.12;
+      rgb = base.map(v => Math.round(v * k));
+    } else if (kind === 'fundido'){
+      const i = Math.floor(t / 2.5) % FADE.length, f = (t / 2.5) % 1;
+      const a = FADE[i], b = FADE[(i + 1) % FADE.length];
+      rgb = a.map((v, j) => Math.round(v + (b[j] - v) * f));
+    }
+    fxTargets().forEach(L => liveSend(L, rgb));
+  }, 110) };
+  $('#fxName').textContent = FX_NAMES[kind];
+  document.querySelectorAll('[data-fx]').forEach(b => b.classList.toggle('primary', b.dataset.fx === kind));
+}
+const FADE = [[255,0,0],[255,0,160],[0,64,255],[0,229,255],[0,255,64],[255,140,0]];
+const FX_NAMES = { respiracion:'Respiración', arcoiris:'Arcoíris', latido:'Latido', fundido:'Fundido' };
+document.querySelectorAll('[data-fx]').forEach(b => b.onclick = () => (fx && fx.kind === b.dataset.fx) ? stopFx() : startFx(b.dataset.fx));
+$('#fxStop').onclick = () => { stopFx(); stopMusic(); };
+
+/* ---------- Luces al ritmo de la música ---------- */
+let mus = null;
+async function startMusic(){
+  stopFx(true);
+  if (listening || continuous){ setContinuous(false); try { rec && rec.stop(); } catch {} }   // el micrófono es uno solo
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation:false, noiseSuppression:false, autoGainControl:false } });
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const an = ctx.createAnalyser(); an.fftSize = 1024;
+    ctx.createMediaStreamSource(stream).connect(an);
+    const buf = new Uint8Array(an.frequencyBinCount);
+    const lowBins = Math.max(2, Math.round(160 / (ctx.sampleRate / an.fftSize)));   // graves hasta ~160 Hz
+    let avg = 0, lastBeat = 0, level = 0, hue = hueOf(currentColor()), lastSend = 0;
+    const mode = () => $('#musMode').value;
+    const loop = () => {
+      if (!mus) return;
+      an.getByteFrequencyData(buf);
+      let e = 0; for (let i = 1; i < lowBins; i++) e += buf[i]; e /= (lowBins - 1);
+      avg = avg * 0.95 + e * 0.05;
+      const sens = 1.55 - (+$('#musSens').value) * 0.05;     // sensibilidad 1 a 10
+      const now = performance.now();
+      if (e > avg * sens && e > 60 && now - lastBeat > 180){
+        lastBeat = now; level = 1;
+        if (mode() === 'color') hue += 47 + Math.random() * 40;
+      }
+      level *= 0.86;
+      $('#musMeter').style.width = Math.min(100, e / 2.55) + '%';
+      if (now - lastSend > 90){
+        lastSend = now;
+        const base = mode() === 'color' ? hsv(hue) : currentColor();
+        const k = mode() === 'color' ? 0.35 + 0.65 * Math.max(level, 0.2) : 0.1 + 0.9 * level;
+        const rgb = base.map(v => Math.round(v * k));
+        fxTargets().forEach(L => liveSend(L, rgb));
+      }
+      mus.raf = requestAnimationFrame(loop);
+    };
+    mus = { stream, ctx, raf: 0 };
+    $('#musBtn').textContent = 'Parar música'; $('#musBtn').classList.add('primary');
+    loop();
+  } catch (e){
+    speak('NO PUEDO USAR EL MICRÓFONO PARA LA MÚSICA');
+    log('Música: ' + e.message);
+  }
+}
+function stopMusic(silent){
+  if (!mus) return;
+  cancelAnimationFrame(mus.raf);
+  mus.stream.getTracks().forEach(t => t.stop());
+  try { mus.ctx.close(); } catch {}
+  mus = null;
+  $('#musBtn').textContent = 'Empezar'; $('#musBtn').classList.remove('primary');
+  $('#musMeter').style.width = '0%';
+  if (!silent) LIGHTS.filter(L => L.char && L.share).forEach(L => sendColor(L, colorFor(L), true));
+}
+$('#musBtn').onclick = () => mus ? stopMusic() : startMusic();
+
+/* ---------- Escenas: cada luz con su color ---------- */
+const DEFAULT_SCENES = [
+  { name:'Tron',  colors:{ ojos:'#0040ff', drl:'#00b4ff', int:'#0040ff' } },
+  { name:'Ares',  colors:{ ojos:'#ff0000', drl:'#ff4000', int:'#ff0000' } },
+  { name:'Noche', colors:{ ojos:'#ffffff', drl:'#ffffff', int:'#9b30ff' } },
+];
+let scenes = store.get('scenes', DEFAULT_SCENES);
+let scEditing = false;
+function renderScenes(){
+  const box = $('#scenes'); box.innerHTML = '';
+  scenes.forEach((sc, i) => {
+    const b = document.createElement('button');
+    b.className = 'scene';
+    const dots = LIGHTS.map(L => sc.colors[L.id] ? `<i style="background:${sc.colors[L.id]}"></i>` : '').join('');
+    b.innerHTML = `<span class="dots">${dots}</span>${escapeHtml(sc.name)}<b class="x">✕</b>`;
+    b.querySelector('.x').onclick = e => { e.stopPropagation(); scenes.splice(i, 1); store.set('scenes', scenes); renderScenes(); };
+    b.onclick = () => applyScene(sc);
+    box.appendChild(b);
+  });
+  box.classList.toggle('editing', scEditing);
+}
+async function applyScene(sc){
+  stopFx(true); stopMusic(true);
+  const done = [];
+  for (const L of LIGHTS){
+    const c = sc.colors[L.id]; if (!c) continue;
+    if (!(await ensureConnected(L))) continue;
+    if (!L.power){ L.power = true; renderPower(L); await enqueue(L, () => writeCmds(L, P(L).on())); }
+    sendColor(L, hexToRgb(c)); done.push(L);   // la escena dura hasta que elijas otro color
+  }
+  return done.length;
+}
+$('#scAdd').onclick = () => { $('#scForm').classList.remove('hide'); $('#scName').value = ''; $('#scName').focus(); };
+$('#scCancel').onclick = () => $('#scForm').classList.add('hide');
+$('#scSave').onclick = () => {
+  const name = $('#scName').value.trim(); if (!name) return;
+  const colors = {};
+  LIGHTS.forEach(L => colors[L.id] = toHex(L.lastRgb || colorFor(L)));
+  scenes.push({ name, colors }); store.set('scenes', scenes); renderScenes();
+  $('#scForm').classList.add('hide');
+};
+$('#scEdit').onclick = () => { scEditing = !scEditing; $('#scEdit').textContent = scEditing ? 'Listo' : 'Editar'; $('#scEdit').classList.toggle('primary', scEditing); renderScenes(); };
+renderScenes();
+
+/* ---------- Opciones: bienvenida, despedida y último color ---------- */
+['welcome','farewell','restore'].forEach(k => {
+  const el = $('#opt-' + k); el.checked = OPTS[k];
+  el.onchange = () => { OPTS[k] = el.checked; saveOpts(); };
+});
+const wait = ms => new Promise(r => setTimeout(r, ms));
+async function welcomeSequence(){
+  const ready = LIGHTS.filter(L => L.char);
+  if (!ready.length) return;
+  for (const L of ready){
+    L.power = true; renderPower(L);
+    await enqueue(L, async () => { await writeCmds(L, P(L).on()); await writeCmds(L, P(L).color(finalColor(L, L.lastRgb || colorFor(L)))); });
+    await wait(450);
+  }
+  speak('HOLA, DIEGO');
+}
+async function farewellSequence(){
+  stopFx(true); stopMusic(true);
+  const on = LIGHTS.filter(L => L.char).reverse();
+  for (const L of on){ await setPower(L, false); await wait(400); }
+  speak('HASTA LUEGO, DIEGO');
+}
+
+/* ---------- Temporizadores ("apagá las interiores en 10 minutos") ---------- */
+const timers = [];
+const NUMS = { un:1, una:1, uno:1, dos:2, tres:3, cuatro:4, cinco:5, seis:6, siete:7, ocho:8, nueve:9, diez:10, quince:15, veinte:20, treinta:30, cuarenta:40, cincuenta:50 };
+function parseTimer(t){
+  let m = t.match(/\ben (media hora|un cuarto de hora)\b/);
+  if (m) return { ms: m[1] === 'media hora' ? 1800e3 : 900e3, text: m[0], label: m[1] };
+  m = t.match(/\ben (\d{1,3}|un|una|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|quince|veinte|treinta|cuarenta|cincuenta) (segundos?|minutos?|horas?)\b/);
+  if (!m) return null;
+  const n = /\d/.test(m[1]) ? +m[1] : NUMS[m[1]];
+  const unit = m[2].startsWith('seg') ? 1e3 : m[2].startsWith('min') ? 60e3 : 3600e3;
+  return { ms: n * unit, text: m[0], label: `${n} ${m[2]}` };
+}
+function renderTimers(){
+  const box = $('#timers');
+  box.innerHTML = timers.length ? '' : '<span class="sub">No hay temporizadores activos</span>';
+  timers.forEach(tm => {
+    const left = Math.max(0, Math.round((tm.at - Date.now()) / 1000));
+    const row = document.createElement('div'); row.className = 'row';
+    row.innerHTML = `<span class="grow">⏱ "${escapeHtml(tm.cmd)}" en ${Math.floor(left/60)}:${String(left%60).padStart(2,'0')}</span><button class="small">Cancelar</button>`;
+    row.querySelector('button').onclick = () => { clearTimeout(tm.id); timers.splice(timers.indexOf(tm), 1); renderTimers(); };
+    box.appendChild(row);
+  });
+}
+setInterval(() => { if (timers.length) renderTimers(); }, 1000);
+renderTimers();
+
+/* ---------- Sorprendeme (solo por voz) ---------- */
+async function surprise(){
+  stopFx(true); stopMusic(true);
+  const cur = hueOf(currentColor());
+  let h; do { h = Math.random() * 360; } while (Math.abs(((h - cur + 540) % 360) - 180) < 50);
+  const rgb = hsv(h, 0.9 + Math.random() * 0.1, 1);
+  $('#color').value = toHex(rgb); syncRgbFromColor();
+  for (const L of LIGHTS.filter(L => L.share)){
+    if (!(await ensureConnected(L))) continue;
+    if (!L.power){ L.power = true; renderPower(L); await enqueue(L, () => writeCmds(L, P(L).on())); }
+  }
+  applyShared();
+}
+
+/* ---------- Directivas por voz ---------- */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+const STOP = new Set(['tiras','tira','luces','luz','las','los','del','de','la','el','controlador']);
+const COLOR_WORDS = {
+  'rojo':'#ff0000', 'roja':'#ff0000', 'blanco':'#ffffff', 'blanca':'#ffffff', 'azul':'#0040ff',
+  'celeste':'#00b4ff', 'cian':'#00e5ff', 'violeta':'#9b30ff', 'morado':'#9b30ff', 'purpura':'#9b30ff',
+  'lila':'#c080ff', 'verde':'#00ff40', 'amarillo':'#ffd000', 'amarilla':'#ffd000', 'naranja':'#ff6a00',
+  'ambar':'#ff8c00', 'rosa':'#ff2a9a', 'rosado':'#ff2a9a', 'fucsia':'#ff00c8', 'magenta':'#ff00ff',
+};
+const wordsOf = L => L.words || norm(L.name).split(' ').filter(w => w.length >= 3 && !STOP.has(w));
+const sayName = L => L.say || norm(L.name).toUpperCase();
+const hasWord = (t, w) => new RegExp('(^|\\s)' + w + '(\\s|$)').test(t);
+
+function findTargets(t){
+  if (/\b(todas|todo|todos)\b/.test(t)) return LIGHTS.map(L => L.id);
+  return LIGHTS.filter(L => hasWord(t, norm(L.name)) || wordsOf(L).some(w => hasWord(t, w))).map(L => L.id);
+}
+function findColor(t){
+  // primero los colores guardados por su nombre (el más largo gana: "rojo kitt" antes que "rojo")
+  const named = presets.map(([n, c]) => [norm(n), c]).filter(([n]) => n && t.includes(n)).sort((a, b) => b[0].length - a[0].length);
+  if (named.length) return named[0][1];
+  for (const w of t.split(' ')) if (COLOR_WORDS[w]) return COLOR_WORDS[w];
+  return null;
+}
+const byId = id => LIGHTS.find(L => L.id === id);
+async function ensureConnected(L){
+  if (L.char) return true;
+  if (L.device){ try { await attach(L, L.device); return true; } catch {} }
+  return false;
+}
+
+async function runSegment(t, ctx){
+  let targets = findTargets(t);
+  if (!targets.length) targets = ctx.lastTargets.length ? ctx.lastTargets : LIGHTS.map(L => L.id);
+  ctx.lastTargets = targets;
+  const all = targets.length === LIGHTS.length;
+
+  const isOff   = /\b(apaga|apagar|apague|apagame)\b/.test(t);
+  const isOn    = /\b(enciende|encende|encender|prende|prender|prendeme|encendeme)\b/.test(t);
+  const isDisc  = /\bdesconecta(r)?\b/.test(t);
+  const isConn  = !isDisc && /\bconecta(r)?\b/.test(t);
+  const color   = findColor(t);
+  const pct     = (t.match(/(\d{1,3})\s*(%|por ?ciento)?/) || [])[1];
+  const isBright= pct !== undefined && /(brillo|al \d|por ?ciento|%)/.test(t);
+
+  const said = [];
+  for (const id of targets){
+    const L = byId(id); if (!L) continue;
+    const NAME = sayName(L);
+    if (isDisc){ disconnect(L); said.push(`${NAME} DESCONECTADO`); continue; }
+
+    const wasConnected = !!L.char;
+    if (isConn || isOn || isOff || color || isBright){
+      const ok = await ensureConnected(L);
+      if (!ok){ said.push(`NO PUEDO CONECTARME AL CONTROLADOR ${NAME}`); continue; }
+      if (isConn) said.push(`${NAME} CONECTADO`);
+      else if (!wasConnected && isOn) said.push('CONECTO EL CONTROLADOR Y ENCIENDO LA LUZ');
+    }
+    if (isOff){ await setPower(L, false); if (!all) said.push(`${NAME} APAGADO`); continue; }
+    if (isOn && wasConnected && !all) said.push(`${NAME} ENCENDIDO`);
+    if (isOn) await setPower(L, true);
+
+    if (isBright){
+      if (L.dim){
+        L.level = Math.max(5, Math.min(100, +pct)); saveCfg();
+        const s = document.getElementById('lv-' + L.id); if (s){ s.value = L.level; document.getElementById('lvv-' + L.id).textContent = L.level + '%'; }
+        sendColor(L, colorFor(L)); said.push(`${NAME} AL ${L.level} POR CIENTO`);
+      } else if (!all) said.push(`${NAME} VA SIEMPRE AL CIEN POR CIENTO`);
+    }
+    if (color && !all){
+      if (!L.power){ L.power = true; renderPower(L); await enqueue(L, () => writeCmds(L, P(L).on())); }
+      sendColor(L, hexToRgb(color)); said.push(`${NAME} LISTO`);
+    }
+  }
+  if (color && all){
+    $('#color').value = color; syncRgbFromColor();
+    for (const id of targets){ const L = byId(id); if (L && L.char && !L.power){ L.power = true; renderPower(L); enqueue(L, () => writeCmds(L, P(L).on())); } }
+    applyShared(); said.push('COLOR APLICADO A TODAS');
+  }
+  if (all && isOn)  said.push('LUCES ENCENDIDAS');
+  if (all && isOff) said.push('LUCES APAGADAS');
+  return said;
+}
+// cómo suele escribir "KITT" el reconocimiento de voz en español
+const WAKE = /^(ok |hola |che )?((k|ka|ca|que) ?(208|doscientos ocho)|208|doscientos ocho|kitt|kiit|kit|kid|kitty|keat|kit t|kiss|ki|quit|quita|quite|quitt|quid|quick|kitt[ae]|kita|kite|keith)\b[\s,]*/;
+// Corrige cómo el reconocimiento de voz suele escribir algunas palabras
+function voiceFix(t){
+  t = ' ' + t + ' ';
+  // letras sueltas seguidas ("d r l", "t r l") → una palabra
+  t = t.replace(/(?: [b-df-hj-np-tv-xz](?= [b-df-hj-np-tv-xz] ))+ [b-df-hj-np-tv-xz](?= )/g, m => ' ' + m.replace(/ /g, ''));
+  // formas en que suele entender "DRL"
+  t = t.replace(/ (trl|tdl|dlr|drl|derl|de rl|dr l|d rl|de r l|de erre ele|de ere ele|de r ele|dere ele|deerreele|d erre ele) /g, ' drl ');
+  t = t.replace(/ (ojos? del demonio|ojos? de demonios) /g, ' ojos de demonio ');
+  return t.trim();
+}
+async function runCommand(raw){
+  const t = voiceFix(norm(raw).replace(WAKE, ''));
+  if (!t) return speak('TE ESCUCHO');
+  // temporizador: "apagá las interiores en 10 minutos"
+  const tm = parseTimer(t);
+  if (tm){
+    const rest = t.replace(tm.text, '').replace(/\s+/g, ' ').trim();
+    if (!rest) return speak('NO ENTENDI QUE HACER DESPUES');
+    const entry = { cmd: rest, at: Date.now() + tm.ms };
+    entry.id = setTimeout(() => { timers.splice(timers.indexOf(entry), 1); renderTimers(); runCommand(rest); }, tm.ms);
+    timers.push(entry); renderTimers();
+    return speak(`LISTO, EN ${tm.label.toUpperCase()}`);
+  }
+  if (/\bsorprend/.test(t)){ await surprise(); return speak('TE SORPRENDO'); }
+  if (/\b(para|parar|frena|frenar|detene|detener|corta|cortar|saca|sacar)( el| los)? (efecto|efectos|musica)\b/.test(t)){ stopFx(); stopMusic(); return speak('EFECTO DETENIDO'); }
+  const fxm = t.match(/\befecto (respiracion|arcoiris|arco iris|latido|fundido)\b/);
+  if (fxm){ const k = fxm[1].replace(' ', ''); startFx(k); return speak('EFECTO ' + FX_NAMES[k].toUpperCase()); }
+  const scn = scenes.map(sc => [norm(sc.name), sc]).filter(([n]) => n && t.includes(n)).sort((a, b) => b[0].length - a[0].length)[0];
+  if (scn && !/\b(apaga|apagar|apague)\b/.test(t)){
+    const n = await applyScene(scn[1]);
+    return speak(n ? 'ESCENA ' + scn[1].name.toUpperCase() : 'NO PUEDO CONECTARME A LAS LUCES');
+  }
+  const ctx = { lastTargets: [] };
+  const pieces = t.split(/\s+y\s+|,/).map(s => s.trim()).filter(Boolean);
+  // "apagá las drl y los ojos": la parte sin acción se suma a la anterior (o a la siguiente)
+  const hasAction = p => /\b(apaga|apagar|apague|apagame|enciende|encende|encender|prende|prender|prendeme|encendeme|conecta|conectar|desconecta|desconectar|brillo|por ?ciento)\b|%|\bal \d/.test(p) || !!findColor(p);
+  const parts = []; let pending = '';
+  for (const p of pieces){
+    if (hasAction(p)){ parts.push((pending + ' ' + p).trim()); pending = ''; }
+    else if (parts.length) parts[parts.length - 1] += ' ' + p;
+    else pending += ' ' + p;
+  }
+  if (pending.trim()) parts.push(pending.trim());
+  let said = [];
+  for (const p of parts) said = said.concat(await runSegment(p, ctx));
+  if (!said.length) said = ['NO ENTENDI LA DIRECTIVA'];
+  speak([...new Set(said)].join('. '));
+}
+function speak(text){
+  $('#vozResp').textContent = text;
+  log('Respuesta: ' + text);
+  try {
+    const u = new SpeechSynthesisUtterance(text.toLowerCase());
+    u.lang = 'es-AR';
+    const v = speechSynthesis.getVoices().find(v => v.lang && v.lang.startsWith('es'));
+    if (v) u.voice = v;
+    u.rate = 1.05;
+    speechSynthesis.cancel(); speechSynthesis.speak(u);
+  } catch {}
+}
+let rec = null, listening = false, continuous = false;
+function setContinuous(on){
+  continuous = on; $('#vozCont').checked = on;
+  $('#vozHint').textContent = on ? 'Escucha continua: empezá con "KITT", "208" o "K208"' : 'Tocá el micrófono y decí una directiva';
+}
+function startListening(){
+  if (!SR){ speak('ESTE NAVEGADOR NO RECONOCE VOZ'); return; }
+  if (listening) return;
+  rec = new SR();
+  rec.lang = 'es-AR'; rec.interimResults = true; rec.maxAlternatives = 1;
+  rec.onstart = () => { listening = true; $('#mic').classList.add('on'); $('#vozTxt').textContent = 'Escuchando…'; };
+  rec.onresult = e => {
+    const r = e.results[e.results.length - 1];
+    const txt = r[0].transcript;
+    $('#vozTxt').textContent = '“' + txt + '”';
+    if (r.isFinal){
+      log('Escuché: ' + txt);
+      if (continuous && !WAKE.test(norm(txt))) return;
+      runCommand(txt);
+    }
+  };
+  rec.onerror = e => {
+    if (e.error === 'not-allowed' || e.error === 'service-not-allowed'){
+      setContinuous(false); $('#vozWarn').classList.remove('hide');
+      speak('NO TENGO PERMISO PARA USAR EL MICRÓFONO');
+    }
+    else if (e.error === 'network'){ setContinuous(false); speak('EL RECONOCIMIENTO DE VOZ NECESITA INTERNET'); }
+    else if (e.error !== 'no-speech' && e.error !== 'aborted') log('Voz: ' + e.error);
+  };
+  rec.onend = () => {
+    listening = false; $('#mic').classList.remove('on');
+    if (continuous) setTimeout(startListening, 300);
+    else if ($('#vozTxt').textContent === 'Escuchando…') $('#vozTxt').textContent = 'Tocá el micrófono y decí una directiva';
+  };
+  try { rec.start(); } catch {}
+}
+$('#mic').onclick = () => { if (listening && !continuous){ rec.stop(); return; } startListening(); };
+$('#vozCont').onchange = e => { setContinuous(e.target.checked); if (continuous) startListening(); else if (rec) rec.stop(); };
+if (location.protocol !== 'https:' && location.hostname !== 'localhost') $('#vozWarn').classList.remove('hide');
+if (!SR) $('#vozTxt').textContent = 'Este navegador no reconoce voz. Usá Chrome.';
+window.kittDirectiva = runCommand; // para probar o para que otro programa mande directivas
+try { speechSynthesis.getVoices(); } catch {}
+
+// app instalable y que abra sin señal
+if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
+
+tryAutoReconnect();
+log(hasBT ? 'Listo. Cerrá las apps originales y tocá "Conectar todas".' : 'Bluetooth no disponible en este navegador.');
+})();
+</script>
+</body>
+</html>
