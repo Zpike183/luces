@@ -1,6 +1,6 @@
 // Guarda una copia de la página para que abra aunque no haya señal.
 // Siempre intenta primero la versión nueva de internet; si no hay conexión, usa la guardada.
-const CACHE = 'lab-v2';
+const CACHE = 'lab-v3';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES))); self.skipWaiting(); });
 self.addEventListener('activate', e => {

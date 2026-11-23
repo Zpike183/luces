@@ -81,6 +81,7 @@
   .scene .dots i{width:12px;height:12px;border-radius:50%;display:block;border:1px solid #0006}
   .scene .x{display:none;margin-left:4px;color:var(--red)}
   .scenes.editing .scene .x{display:inline}
+  .fxlights{display:flex;flex-wrap:wrap;gap:4px 14px;margin:4px 0 2px}
   .fxgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
   .meter{height:8px;border-radius:4px;background:#20202b;margin-top:10px;overflow:hidden}
   .meter div{height:100%;width:0;background:var(--red);transition:width .08s}
@@ -158,6 +159,8 @@
 <div class="card">
   <div class="name">Efectos</div>
   <div class="sub w">Toda la tira junta, con la app abierta y la pantalla prendida. Activo: <b id="fxName">Ninguno</b></div>
+  <div class="sub" style="margin-top:10px">Aplicar a:</div>
+  <div class="fxlights" id="fxLights"></div>
   <div class="fxgrid">
     <button class="small" data-fx="respiracion">Respiración</button>
     <button class="small" data-fx="arcoiris">Arcoíris</button>
@@ -478,7 +481,10 @@ function colorFor(L){
   return L.share || !own ? currentColor() : hexToRgb(own.value);
 }
 function sendColor(L, rgb, fromFx){
-  if (!fromFx){ stopFx(true); stopMusic(true); L.lastRgb = rgb; saveLast(); }
+  if (!fromFx){
+    L.lastRgb = rgb; saveLast();
+    if (fxOn(L) && (fx || mus)){ fxSel = (fxSel || LIGHTS.map(x => x.id)).filter(id => id !== L.id); store.set('fx-targets', fxSel); renderFxLights(); if (!fxTargets().length){ stopFx(true); stopMusic(true); } }
+  }
   if (!L.char) return Promise.resolve();
   const p = P(L), out = finalColor(L, rgb);
   const q = enqueue(L, () => writeCmds(L, p.color(out)));
@@ -754,7 +760,20 @@ function liveSend(L, rgb){
   L.inflight = true;
   enqueue(L, () => writeCmds(L, P(L).color(finalColor(L, rgb)), true)).finally(() => { L.inflight = false; });
 }
-const fxTargets = () => LIGHTS.filter(L => L.char && L.share);
+// luces elegidas para efectos y música (por defecto, todas)
+let fxSel = store.get('fx-targets', null);
+const fxOn = L => !fxSel || fxSel.includes(L.id);
+const fxTargets = () => LIGHTS.filter(L => L.char && fxOn(L));
+function renderFxLights(){
+  $('#fxLights').innerHTML = LIGHTS.map(L => `<label class="chk"><input type="checkbox" data-fxl="${L.id}" ${fxOn(L) ? 'checked' : ''}> ${escapeHtml(L.say ? L.say.charAt(0) + L.say.slice(1).toLowerCase() : L.name)}</label>`).join('');
+  $('#fxLights').querySelectorAll('[data-fxl]').forEach(cb => cb.onchange = () => {
+    const prev = fxTargets();
+    fxSel = [...$('#fxLights').querySelectorAll('[data-fxl]:checked')].map(c => c.dataset.fxl);
+    store.set('fx-targets', fxSel);
+    // la luz que se saca del efecto vuelve a su color
+    prev.filter(L => !fxOn(L)).forEach(L => sendColor(L, L.lastRgb || colorFor(L), true));
+  });
+}
 
 /* ---------- Efectos de tira completa ---------- */
 let fx = null;
@@ -763,7 +782,7 @@ function stopFx(silent){
   clearInterval(fx.timer); fx = null;
   $('#fxName').textContent = 'Ninguno';
   document.querySelectorAll('[data-fx]').forEach(b => b.classList.remove('primary'));
-  if (!silent) LIGHTS.filter(L => L.char && L.share).forEach(L => sendColor(L, colorFor(L), true));
+  if (!silent) fxTargets().forEach(L => sendColor(L, L.lastRgb || colorFor(L), true));
 }
 function startFx(kind){
   stopMusic(true); stopFx(true);
@@ -794,6 +813,7 @@ function startFx(kind){
 }
 const FADE = [[255,0,0],[255,0,160],[0,64,255],[0,229,255],[0,255,64],[255,140,0]];
 const FX_NAMES = { respiracion:'Respiración', arcoiris:'Arcoíris', latido:'Latido', fundido:'Fundido' };
+renderFxLights();
 document.querySelectorAll('[data-fx]').forEach(b => b.onclick = () => (fx && fx.kind === b.dataset.fx) ? stopFx() : startFx(b.dataset.fx));
 $('#fxStop').onclick = () => { stopFx(); stopMusic(); };
 
@@ -849,7 +869,7 @@ function stopMusic(silent){
   mus = null;
   $('#musBtn').textContent = 'Empezar'; $('#musBtn').classList.remove('primary');
   $('#musMeter').style.width = '0%';
-  if (!silent) LIGHTS.filter(L => L.char && L.share).forEach(L => sendColor(L, colorFor(L), true));
+  if (!silent) fxTargets().forEach(L => sendColor(L, L.lastRgb || colorFor(L), true));
 }
 $('#musBtn').onclick = () => mus ? stopMusic() : startMusic();
 
@@ -1088,7 +1108,12 @@ async function runCommand(raw){
   if (/\bsorprend/.test(t)){ await surprise(); return speak('TE SORPRENDO'); }
   if (/\b(para|parar|frena|frenar|detene|detener|corta|cortar|saca|sacar)( el| los)? (efecto|efectos|musica)\b/.test(t)){ stopFx(); stopMusic(); return speak('EFECTO DETENIDO'); }
   const fxm = t.match(/\befecto (respiracion|arcoiris|arco iris|latido|fundido)\b/);
-  if (fxm){ const k = fxm[1].replace(' ', ''); startFx(k); return speak('EFECTO ' + FX_NAMES[k].toUpperCase()); }
+  if (fxm){
+    const k = fxm[1].replace(' ', '');
+    const tg = findTargets(t.replace(fxm[0], ''));
+    if (tg.length){ fxSel = tg; store.set('fx-targets', fxSel); renderFxLights(); }
+    startFx(k); return speak('EFECTO ' + FX_NAMES[k].toUpperCase());
+  }
   const scn = scenes.map(sc => [norm(sc.name), sc]).filter(([n]) => n && t.includes(n)).sort((a, b) => b[0].length - a[0].length)[0];
   if (scn && !/\b(apaga|apagar|apague)\b/.test(t)){
     const n = await applyScene(scn[1]);
