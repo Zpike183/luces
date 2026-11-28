@@ -166,7 +166,9 @@
     <button class="small" data-fx="arcoiris">Arcoíris</button>
     <button class="small" data-fx="latido">Latido</button>
     <button class="small" data-fx="fundido">Fundido</button>
+    <button class="small" data-fx="electricidad">Electricidad</button>
   </div>
+  <label class="chk" style="margin-top:8px"><input type="checkbox" id="fxWhite"> Electricidad: destellos en blanco puro (si no, del mismo color)</label>
   <div class="row" style="margin-top:10px"><span class="sub">Velocidad</span><input type="range" id="fxSpeed" min="1" max="10" value="4" class="grow"></div>
   <div class="name" style="margin-top:16px">Al ritmo de la música</div>
   <div class="sub w">Escucha por el micrófono y las luces laten con los graves. Mientras está activo, la voz se pausa.</div>
@@ -788,6 +790,7 @@ function startFx(kind){
   stopMusic(true); stopFx(true);
   const base = currentColor(), baseHue = hueOf(base);
   const t0 = performance.now();
+  const el = { next: performance.now() + 300, burst: 0, hold: 0, power: 1 };
   fx = { kind, timer: setInterval(() => {
     const speed = +$('#fxSpeed').value;              // 1 a 10
     const t = (performance.now() - t0) / 1000 * (0.25 + speed * 0.18);
@@ -801,6 +804,24 @@ function startFx(kind){
       const ph = (t * 1.2) % 1;                       // dos golpes y pausa
       const k = ph < 0.12 ? 1 : ph < 0.22 ? 0.25 : ph < 0.34 ? 0.85 : 0.12;
       rgb = base.map(v => Math.round(v * k));
+    } else if (kind === 'electricidad'){
+      // base tenue del color elegido + chispazos al azar, a veces en ráfagas
+      const now = performance.now(), sp = +$('#fxSpeed').value;
+      const white = $('#fxWhite').checked;
+      if (el.hold > 0){
+        el.hold--; rgb = el.flash;                               // el destello sigue un cuadro más
+      } else if (now >= el.next){
+        el.power = 0.55 + Math.random() * 0.45;
+        el.hold = Math.random() < 0.25 ? 1 : 0;                 // algunos destellos duran un cuadro más
+        if (el.burst > 0){ el.burst--; el.next = now + 90 + Math.random() * 120; }
+        else {
+          el.burst = Math.random() < 0.45 ? 1 + Math.floor(Math.random() * 3) : 0;   // ráfaga de 1 a 3 destellos más
+          el.next = now + (2600 - sp * 220) * (0.25 + Math.random());              // pausa al azar (más corta con más velocidad)
+        }
+        const flash = white ? [255,255,255] : base.map(v => Math.round(v + (255 - v) * 0.35));
+        rgb = el.flash = flash.map(v => Math.round(v * el.power));
+      }
+      if (!rgb) rgb = base.map(v => Math.round(v * (0.08 + Math.random() * 0.06)));   // base que tiembla apenas
     } else if (kind === 'fundido'){
       const i = Math.floor(t / 2.5) % FADE.length, f = (t / 2.5) % 1;
       const a = FADE[i], b = FADE[(i + 1) % FADE.length];
@@ -812,7 +833,9 @@ function startFx(kind){
   document.querySelectorAll('[data-fx]').forEach(b => b.classList.toggle('primary', b.dataset.fx === kind));
 }
 const FADE = [[255,0,0],[255,0,160],[0,64,255],[0,229,255],[0,255,64],[255,140,0]];
-const FX_NAMES = { respiracion:'Respiración', arcoiris:'Arcoíris', latido:'Latido', fundido:'Fundido' };
+const FX_NAMES = { respiracion:'Respiración', arcoiris:'Arcoíris', latido:'Latido', fundido:'Fundido', electricidad:'Electricidad' };
+$('#fxWhite').checked = !!store.get('fx-white', false);
+$('#fxWhite').onchange = e => store.set('fx-white', e.target.checked);
 renderFxLights();
 document.querySelectorAll('[data-fx]').forEach(b => b.onclick = () => (fx && fx.kind === b.dataset.fx) ? stopFx() : startFx(b.dataset.fx));
 $('#fxStop').onclick = () => { stopFx(); stopMusic(); };
@@ -1107,9 +1130,9 @@ async function runCommand(raw){
   }
   if (/\bsorprend/.test(t)){ await surprise(); return speak('TE SORPRENDO'); }
   if (/\b(para|parar|frena|frenar|detene|detener|corta|cortar|saca|sacar)( el| los)? (efecto|efectos|musica)\b/.test(t)){ stopFx(); stopMusic(); return speak('EFECTO DETENIDO'); }
-  const fxm = t.match(/\befecto (respiracion|arcoiris|arco iris|latido|fundido)\b/);
+  const fxm = t.match(/\befecto (respiracion|arcoiris|arco iris|latido|fundido|electricidad|electrico)\b/);
   if (fxm){
-    const k = fxm[1].replace(' ', '');
+    const k = fxm[1] === 'electrico' ? 'electricidad' : fxm[1].replace(' ', '');
     const tg = findTargets(t.replace(fxm[0], ''));
     if (tg.length){ fxSel = tg; store.set('fx-targets', fxSel); renderFxLights(); }
     startFx(k); return speak('EFECTO ' + FX_NAMES[k].toUpperCase());
